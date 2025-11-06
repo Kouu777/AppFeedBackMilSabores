@@ -113,7 +113,7 @@ class MainLogin : AppCompatActivity() {
                     startActivity(nvaVentana)
                     finish() // Opcional: cerrar la actividad de login
                 } else {
-                    txConf.text = "Usuario o contraseña incorrectos"
+                    txConf.text = "Usuario o contraseña incorrectos!"
                 }
             }
         }
