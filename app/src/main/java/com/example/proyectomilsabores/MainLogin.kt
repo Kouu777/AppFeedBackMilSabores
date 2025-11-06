@@ -1,5 +1,6 @@
 package com.example.proyectomilsabores
 
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Button
@@ -11,11 +12,13 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.example.proyectomilsabores.DbLog.DbHelper
+import com.example.proyectomilsabores.DbLog.Usuarios
 
 class MainLogin : AppCompatActivity() {
 
     private lateinit var databaseHelper: DbHelper
 
+    @SuppressLint("MissingInflatedId")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -69,9 +72,9 @@ class MainLogin : AppCompatActivity() {
 
             if (isRegisterMode) {
                 // MODO REGISTRO
-                val name = etxName.text.toString().trim()
+                val nombre = etxName.text.toString().trim()
 
-                if (name.isEmpty()) {
+                if (nombre.isEmpty()) {
                     txConf.text = "Por favor, ingresa tu nombre"
                     return@setOnClickListener
                 }
@@ -83,7 +86,7 @@ class MainLogin : AppCompatActivity() {
                 }
 
                 // Crear nuevo usuario
-                val newUser = User(name = name, email = email, password = password)
+                val newUser = Usuarios(nombre = nombre, email = email, password = password)
                 val result = databaseHelper.addUser(newUser)
 
                 if (result != -1L) {
@@ -100,12 +103,12 @@ class MainLogin : AppCompatActivity() {
                 val user = databaseHelper.loginUser(email, password)
 
                 if (user != null) {
-                    txConf.text = "Bienvenido ${user.name}"
+                    txConf.text = "Bienvenido ${user.nombre}"
                     Toast.makeText(this, "Inicio de sesión exitoso", Toast.LENGTH_SHORT).show()
 
                     val nvaVentana = Intent(this, MainFeed::class.java)
                     // Puedes pasar datos del usuario si es necesario
-                    nvaVentana.putExtra("USER_NAME", user.name)
+                    nvaVentana.putExtra("USER_NAME", user.nombre)
                     nvaVentana.putExtra("USER_EMAIL", user.email)
                     startActivity(nvaVentana)
                     finish() // Opcional: cerrar la actividad de login
