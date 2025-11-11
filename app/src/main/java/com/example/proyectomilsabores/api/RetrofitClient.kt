@@ -4,11 +4,15 @@ import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import retrofit2.http.Body
 import retrofit2.http.GET
+import retrofit2.http.POST
 import retrofit2.http.Path
 import java.util.concurrent.TimeUnit
 
 interface ApiService {
+    @POST("api/reviews")
+    suspend fun submitReview(@Body reviewRequest: ReviewRequest): ReviewResponse
 
     @GET("api/categorias")
     suspend fun getCategorias(): List<CategoriaResponse>
@@ -16,6 +20,33 @@ interface ApiService {
     @GET("api/productos/categoria/{categoriaId}")
     suspend fun getProductosPorCategoria(@Path("categoriaId") categoriaId: Long): List<ProductoResponse>
 }
+
+// Modelos para las reviews
+data class ReviewRequest(
+    val productId: String,
+    val productName: String,
+    val category: String,
+    val userId: String,
+    val userName: String,
+    val rating: Int,
+    val comment: String,
+    val sentimentScore: Float = 0.5f,
+    val imageUrls: List<String> = emptyList()
+)
+
+data class ReviewResponse(
+    val id: Long,
+    val productId: String,
+    val productName: String,
+    val category: String,
+    val userId: String,
+    val userName: String,
+    val rating: Int,
+    val comment: String,
+    val sentimentScore: Float,
+    val imageUrls: List<String>,
+    val createdAt: String
+)
 
 data class CategoriaResponse(
     val id: Long,
@@ -31,11 +62,9 @@ data class ProductoResponse(
 )
 
 object RetrofitClient {
-    // Elige la URL correcta para tu setup:
-    private const val BASE_URL = "http://10.0.2.2:8080/"  // ← Para Emulador Android
+    private const val BASE_URL = "http://10.0.2.2:8080/"
 
     val instance: Retrofit by lazy {
-        // Interceptor para ver logs de las requests
         val logging = HttpLoggingInterceptor().apply {
             level = HttpLoggingInterceptor.Level.BODY
         }

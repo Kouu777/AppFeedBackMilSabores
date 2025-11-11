@@ -13,6 +13,7 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.example.proyectomilsabores.DbLog.DbHelper
 import com.example.proyectomilsabores.DbLog.Usuarios
+import com.example.proyectomilsabores.ui.activities.MainFeed
 
 class MainLogin : AppCompatActivity() {
 

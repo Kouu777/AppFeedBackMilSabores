@@ -12,7 +12,6 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
-
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -22,14 +21,16 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.ProyectoMilSabores">
-
+        <activity
+            android:name=".Main_Home"
+            android:exported="false" />
         <!-- Configuración de Google OAuth -->
         <meta-data
             android:name="com.google.android.gms.auth.api.identity.SERVER_CLIENT_ID"
             android:value="47831308631-8ufbqnndirtc21eath532pc8j1ca9qjf.apps.googleusercontent.com" />
 
         <activity
-            android:name=".MainFeed"
+            android:name=".ui.activities.MainFeed"
             android:exported="false" />
         <activity
             android:name=".MainLogin"

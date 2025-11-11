@@ -37,35 +37,6 @@
         tools:layout_editor_absoluteX="1dp"
         tools:layout_editor_absoluteY="301dp" />
 
-    <Button
-        android:id="@+id/btn_escanear"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:backgroundTint="@color/baby_pink"
-        android:fontFamily="@font/lato_regular"
-        android:text="Escanear Producto"
-        android:textColor="@color/dark_brown"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.5"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.226" />
-
-    <TextView
-        android:id="@+id/tx_opcion"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:fontFamily="@font/lato_regular"
-        android:text="Ó"
-        android:textSize="20dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.498"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.303" />
-
     <EditText
         android:id="@+id/etx_opinion"
         android:layout_width="wrap_content"
