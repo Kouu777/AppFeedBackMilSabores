@@ -13,22 +13,30 @@ import android.provider.MediaStore
 import android.util.Log
 import android.view.View
 import android.view.ViewGroup
-import android.widget.*
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
+import android.widget.Button
+import android.widget.EditText
+import android.widget.ImageView
+import android.widget.Spinner
+import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
+import androidx.lifecycle.lifecycleScope
 import com.example.proyectomilsabores.R
-import com.example.proyectomilsabores.api.*
+import com.example.proyectomilsabores.api.CategoriaResponse
+import com.example.proyectomilsabores.api.ProductoResponse
+import com.example.proyectomilsabores.api.RetrofitClient
+import com.example.proyectomilsabores.api.ReviewRequest
 import com.example.proyectomilsabores.data.UserRepository
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.io.File
 
 class MainFeed : AppCompatActivity() {
-
 
     private lateinit var spCat: Spinner
     private lateinit var spProd: Spinner
@@ -37,13 +45,11 @@ class MainFeed : AppCompatActivity() {
     private lateinit var etxOpinion: EditText
     private lateinit var ivPreview: ImageView
 
-
     private var currentProductId: String? = null
     private var currentProductName: String? = null
     private var currentCategory: String? = null
     private var currentImageUri: Uri? = null
     private var currentBitmap: Bitmap? = null
-
 
     private val requestCameraPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
@@ -73,7 +79,6 @@ class MainFeed : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        // Carga los datos solo si el spinner de categorías está vacío, para evitar recargas.
         if (spCat.adapter == null || spCat.adapter.count <= 1) {
             loadCategorias()
         }
@@ -93,7 +98,6 @@ class MainFeed : AppCompatActivity() {
         btnEnviarOp.setOnClickListener { submitReview() }
     }
 
-
     private fun showPhotoOptionsDialog() {
         AlertDialog.Builder(this)
             .setTitle("Subir Foto")
@@ -109,7 +113,6 @@ class MainFeed : AppCompatActivity() {
                 this,
                 Manifest.permission.CAMERA
             ) == PackageManager.PERMISSION_GRANTED -> takePhoto()
-
             else -> requestCameraPermissionLauncher.launch(Manifest.permission.CAMERA)
         }
     }
@@ -153,7 +156,6 @@ class MainFeed : AppCompatActivity() {
         }
     }
 
-
     private fun submitReview() {
         val opinion = etxOpinion.text.toString().trim()
 
@@ -170,7 +172,7 @@ class MainFeed : AppCompatActivity() {
         btnEnviarOp.isEnabled = false
         btnEnviarOp.text = "Enviando..."
 
-        CoroutineScope(Dispatchers.Main).launch {
+        lifecycleScope.launch {
             try {
                 val reviewRequest = ReviewRequest(
                     productId = currentProductId!!,
@@ -188,7 +190,6 @@ class MainFeed : AppCompatActivity() {
                     RetrofitClient.apiService.submitReview(reviewRequest.productId, reviewRequest)
 
                 if (response.isSuccessful) {
-
                     val reviewResponse = response.body()
                     clearForm()
                     Toast.makeText(
@@ -198,7 +199,6 @@ class MainFeed : AppCompatActivity() {
                     ).show()
                     Log.d("API_SUCCESS", "Reseña enviada con éxito: ${response.code()}")
                 } else {
-
                     val errorBody = response.errorBody()?.string()
                     Log.e(
                         "API_ERROR",
@@ -210,7 +210,6 @@ class MainFeed : AppCompatActivity() {
                         Toast.LENGTH_LONG
                     ).show()
                 }
-
             } catch (e: Exception) {
                 Log.e("API_ERROR", "Fallo de conexión al enviar reseña: ${e.message}", e)
                 Toast.makeText(
@@ -236,12 +235,10 @@ class MainFeed : AppCompatActivity() {
     private fun getCurrentUserId(): String = UserRepository(this).getUserId() ?: "user_unknown"
     private fun getCurrentUserName(): String = UserRepository(this).getUserName() ?: "Usuario"
 
-
     private fun loadCategorias() {
-        CoroutineScope(Dispatchers.Main).launch {
+        lifecycleScope.launch {
             try {
                 val response = RetrofitClient.apiService.getCategorias()
-
                 if (response.isSuccessful) {
                     val categorias = response.body() ?: emptyList()
                     if (categorias.isNotEmpty()) {
@@ -249,111 +246,74 @@ class MainFeed : AppCompatActivity() {
                         setupCategoriaSpinner(categorias)
                     } else {
                         Log.w("API_WARN", "La API devolvió 0 categorías.")
-                        Toast.makeText(
-                            this@MainFeed,
-                            "No se encontraron categorías.",
-                            Toast.LENGTH_LONG
-                        ).show()
+                        Toast.makeText(this@MainFeed, "No se encontraron categorías.", Toast.LENGTH_LONG).show()
                     }
                 } else {
-
                     Log.e("API_ERROR", "Error cargando categorías. Código: ${response.code()}")
-                    Toast.makeText(
-                        this@MainFeed,
-                        "Error al cargar categorías: ${response.code()}",
-                        Toast.LENGTH_LONG
-                    ).show()
+                    Toast.makeText(this@MainFeed, "Error al cargar categorías: ${response.code()}", Toast.LENGTH_LONG).show()
                 }
             } catch (e: Exception) {
-
                 Log.e("API_ERROR", "Fallo de conexión al cargar categorías: ${e.message}")
-                Toast.makeText(
-                    this@MainFeed,
-                    "Fallo de conexión. Revisa tu red.",
-                    Toast.LENGTH_LONG
-                ).show()
+                Toast.makeText(this@MainFeed, "Fallo de conexión. Revisa tu red.", Toast.LENGTH_LONG).show()
             }
         }
     }
 
     private fun setupCategoriaSpinner(categorias: List<CategoriaResponse>) {
         val categoriaNombres = categorias.map { it.nombre }
-        val adapter = HintAdapter(
-            this,
-            android.R.layout.simple_spinner_item,
-            categoriaNombres,
-            "Selecciona una categoría"
-        )
+        val adapter = HintAdapter(this, android.R.layout.simple_spinner_item, categoriaNombres, "Selecciona una categoría")
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         spCat.adapter = adapter
         spCat.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(
-                parent: AdapterView<*>,
-                view: View?,
-                position: Int,
-                id: Long
-            ) {
+            override fun onItemSelected(parent: AdapterView<*>, view: View?, position: Int, id: Long) {
                 if (position > 0) {
                     val categoria = categorias[position - 1]
                     currentCategory = categoria.nombre
-                    loadProductos(categoria.id)
+                    // Llamada a la función para cargar productos
+                    loadProductosPorCategoria(categoria.id)
                 } else {
+                    // Limpia el spinner de productos si no hay categoría seleccionada
                     setupProductoSpinner(emptyList())
                 }
             }
-
             override fun onNothingSelected(parent: AdapterView<*>) {}
         }
     }
 
-    private fun loadProductos(categoriaId: Long) {
-        CoroutineScope(Dispatchers.Main).launch {
+    // --- FUNCIÓN CORREGIDA Y AÑADIDA ---
+    private fun loadProductosPorCategoria(categoryId: Long) {
+        lifecycleScope.launch {
             try {
-                val response = RetrofitClient.apiService.getProductosPorCategoria(categoriaId)
+                val response = RetrofitClient.apiService.getProductosPorCategoria(categoryId)
                 if (response.isSuccessful) {
-                    val productos = response.body() ?: emptyList()
-                    Log.d(
-                        "API_SUCCESS",
-                        "Productos para categoría $categoriaId cargados: ${productos.size}"
-                    )
-                    setupProductoSpinner(productos)
+                    val productList = response.body()
+                    if (productList != null) {
+                        Log.d("API_SUCCESS", "Productos para categoría $categoryId cargados: ${productList.size}")
+                        // Actualiza el spinner de productos con los datos recibidos
+                        setupProductoSpinner(productList)
+                    } else {
+                        Log.e("API_ERROR", "Error cargando productos: El cuerpo de la respuesta es nulo. Código: ${response.code()}")
+                        Toast.makeText(this@MainFeed, "No se encontraron productos para esta categoría.", Toast.LENGTH_SHORT).show()
+                        setupProductoSpinner(emptyList()) // Limpia el spinner
+                    }
+                } else {
                     Log.e("API_ERROR", "Error cargando productos. Código: ${response.code()}")
-                    Toast.makeText(
-                        this@MainFeed,
-                        "Error al cargar productos: ${response.code()}",
-                        Toast.LENGTH_LONG
-                    ).show()
-                    setupProductoSpinner(emptyList())
+                    Toast.makeText(this@MainFeed, "Error al cargar productos: ${response.code()}", Toast.LENGTH_LONG).show()
                 }
             } catch (e: Exception) {
-                Log.e("API_ERROR", "Fallo de conexión al cargar productos: ${e.message}")
-                Toast.makeText(
-                    this@MainFeed,
-                    "Fallo de conexión. Revisa tu red.",
-                    Toast.LENGTH_LONG
-                ).show()
-                setupProductoSpinner(emptyList())
+                Log.e("API_EXCEPTION", "Excepción al cargar productos: ${e.message}", e)
+                Toast.makeText(this@MainFeed, "Fallo de conexión al cargar productos.", Toast.LENGTH_LONG).show()
             }
         }
     }
 
     private fun setupProductoSpinner(productos: List<ProductoResponse>) {
         val productNombres = productos.map { it.nombre }
-        val adapter = HintAdapter(
-            this,
-            android.R.layout.simple_spinner_item,
-            productNombres,
-            "Selecciona un producto"
-        )
+        val adapter = HintAdapter(this, android.R.layout.simple_spinner_item, productNombres, "Selecciona un producto")
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         spProd.adapter = adapter
         spProd.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(
-                parent: AdapterView<*>,
-                view: View?,
-                position: Int,
-                id: Long
-            ) {
+            override fun onItemSelected(parent: AdapterView<*>, view: View?, position: Int, id: Long) {
                 if (position > 0) {
                     val producto = productos[position - 1]
                     currentProductId = producto.id.toString()
@@ -363,15 +323,15 @@ class MainFeed : AppCompatActivity() {
                     currentProductName = null
                 }
             }
-
             override fun onNothingSelected(parent: AdapterView<*>) {}
         }
     }
 
-    private class HintAdapter(context: Context, resource: Int, private val items: List<String>, private val hint: String) :
-        ArrayAdapter<String>(context, resource, items) {
-        override fun getCount(): Int = super.getCount() + 1
-        override fun getItem(position: Int): String = if (position == 0) hint else super.getItem(position - 1)!!
+    private class HintAdapter(context: Context, resource: Int, items: List<String>, private val hint: String) :
+        ArrayAdapter<String>(context, resource, items.toMutableList().apply { add(0, hint) }) {
+
+        override fun getCount(): Int = super.getCount()
+        override fun getItem(position: Int): String = super.getItem(position)!!
         override fun isEnabled(position: Int): Boolean = position != 0
 
         override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
@@ -384,6 +344,14 @@ class MainFeed : AppCompatActivity() {
             val view = super.getDropDownView(position, convertView, parent) as TextView
             view.setTextColor(if (position == 0) Color.GRAY else Color.BLACK)
             return view
+        }
+
+        // Sobrescribimos el constructor para que funcione con la nueva lógica
+        init {
+            val mutableItems = items.toMutableList()
+            mutableItems.add(0, hint)
+            clear()
+            addAll(mutableItems)
         }
     }
 }
