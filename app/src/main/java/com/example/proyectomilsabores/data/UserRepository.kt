@@ -9,7 +9,7 @@ class UserRepository(private val context: Context) {
         context.getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
     }
 
-    // Token methods
+
     fun saveUserToken(token: String) {
         prefs.edit().putString("user_token", token).apply()
     }
@@ -18,7 +18,6 @@ class UserRepository(private val context: Context) {
         return prefs.getString("user_token", null)
     }
 
-    // User ID methods
     fun saveUserId(userId: String) {
         prefs.edit().putString("user_id", userId).apply()
     }
@@ -27,7 +26,7 @@ class UserRepository(private val context: Context) {
         return prefs.getString("user_id", null)
     }
 
-    // User Name methods
+
     fun saveUserName(userName: String) {
         prefs.edit().putString("user_name", userName).apply()
     }

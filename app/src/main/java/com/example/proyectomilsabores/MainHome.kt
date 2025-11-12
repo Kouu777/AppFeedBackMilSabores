@@ -9,10 +9,11 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 
 
-class Main_Home : AppCompatActivity() {
+class MainHome : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        setContentView(R.layout.activity_home)
 
         val btnComenzar: Button = findViewById(R.id.btn_comenzar)
 
@@ -21,7 +22,7 @@ class Main_Home : AppCompatActivity() {
             startActivity(nvaVentana)
         }
 
-        setContentView(R.layout.activity_home)
+
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)

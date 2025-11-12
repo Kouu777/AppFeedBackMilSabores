@@ -2,14 +2,13 @@ package com.example.proyectomilsabores.language
 
 class SentimentAnalyzer {
 
-    // Por ahora simulamos el análisis de sentimiento
-    // Más adelante integrarás Google Cloud Natural Language API
+
     suspend fun analyzeSentiment(text: String): SentimentResult {
         return try {
             // Simulación de análisis
             Thread.sleep(500)
 
-            // Análisis simple basado en palabras clave
+
             val positiveWords = listOf("excelente", "bueno", "genial", "increíble", "perfecto")
             val negativeWords = listOf("malo", "horrible", "terrible", "pésimo", "decepcionante")
 

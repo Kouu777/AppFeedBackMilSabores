@@ -25,19 +25,17 @@ class MainLogin : AppCompatActivity() {
         enableEdgeToEdge()
         setContentView(R.layout.activity_login)
 
-        // Inicializar DatabaseHelper
+
         databaseHelper = DbHelper(this)
 
         val btnLogin: Button = findViewById(R.id.btn_login)
         val etxPasswd: EditText = findViewById(R.id.etx_pass)
         val etxUser: EditText = findViewById(R.id.etx_user)
-        val etxName: EditText = findViewById(R.id.etx_name) // Necesitarás agregar este EditText en tu layout
+        val etxName: EditText = findViewById(R.id.etx_name)
         val txConf: TextView = findViewById(R.id.tx_conf)
-        val tvToggle: TextView = findViewById(R.id.tv_toggle) // Para cambiar entre login/registro
-
+        val tvToggle: TextView = findViewById(R.id.tv_toggle)
         var isRegisterMode = false
 
-        // Función para cambiar entre modos
         fun toggleMode() {
             isRegisterMode = !isRegisterMode
             if (isRegisterMode) {
@@ -51,13 +49,13 @@ class MainLogin : AppCompatActivity() {
                 tvToggle.text = "¿No tienes cuenta? Regístrate"
                 txConf.text = "Ingresa tus credenciales"
             }
-            // Limpiar campos
+
             etxUser.text.clear()
             etxPasswd.text.clear()
             etxName.text.clear()
         }
 
-        // Configurar el toggle
+
         tvToggle.setOnClickListener {
             toggleMode()
         }
@@ -72,7 +70,7 @@ class MainLogin : AppCompatActivity() {
             }
 
             if (isRegisterMode) {
-                // MODO REGISTRO
+
                 val nombre = etxName.text.toString().trim()
 
                 if (nombre.isEmpty()) {
@@ -80,20 +78,19 @@ class MainLogin : AppCompatActivity() {
                     return@setOnClickListener
                 }
 
-                // Verificar si el usuario ya existe
+
                 if (databaseHelper.checkUserExists(email)) {
                     txConf.text = "Este email ya está registrado"
                     return@setOnClickListener
                 }
 
-                // Crear nuevo usuario
                 val newUser = Usuarios(nombre = nombre, email = email, password = password)
                 val result = databaseHelper.addUser(newUser)
 
                 if (result != -1L) {
                     Toast.makeText(this, "Registro exitoso", Toast.LENGTH_SHORT).show()
                     txConf.text = "Registro exitoso. Ahora puedes iniciar sesión"
-                    // Cambiar a modo login
+
                     toggleMode()
                 } else {
                     txConf.text = "Error en el registro"
@@ -108,11 +105,11 @@ class MainLogin : AppCompatActivity() {
                     Toast.makeText(this, "Inicio de sesión exitoso", Toast.LENGTH_SHORT).show()
 
                     val nvaVentana = Intent(this, MainFeed::class.java)
-                    // Puedes pasar datos del usuario si es necesario
+
                     nvaVentana.putExtra("USER_NAME", user.nombre)
                     nvaVentana.putExtra("USER_EMAIL", user.email)
                     startActivity(nvaVentana)
-                    finish() // Opcional: cerrar la actividad de login
+                    finish()
                 } else {
                     txConf.text = "Usuario o contraseña incorrectos!"
                 }

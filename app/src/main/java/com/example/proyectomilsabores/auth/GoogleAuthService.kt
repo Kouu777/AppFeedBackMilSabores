@@ -10,7 +10,7 @@ import kotlinx.coroutines.tasks.await
 class GoogleAuthService(private val context: Context) {
     private val oneTapClient: SignInClient = Identity.getSignInClient(context)
 
-    // Método simplificado que retorna directamente el PendingIntent
+
     suspend fun getSignInPendingIntent(): Result<android.app.PendingIntent> {
         return try {
             val signInResult = oneTapClient.beginSignIn(

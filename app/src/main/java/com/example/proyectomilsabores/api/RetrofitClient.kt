@@ -2,6 +2,7 @@ package com.example.proyectomilsabores.api
 
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
+import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.Body
@@ -11,17 +12,26 @@ import retrofit2.http.Path
 import java.util.concurrent.TimeUnit
 
 interface ApiService {
-    @POST("api/reviews")
-    suspend fun submitReview(@Body reviewRequest: ReviewRequest): ReviewResponse
+    // --- Reviews ---
+    @POST("api/productos/{productId}/reviews")
+    suspend fun submitReview(
+        @Path("productId") productId: String, // <-- Parámetro para la URL
+        @Body reviewRequest: ReviewRequest
+    ): Response<ReviewResponse>
+    @GET("api/productos/{productoId}/reviews")
+    suspend fun getReviewsForProduct(@Path("productoId") id: Long): Response<List<ReviewResponse>> // <<< CAMBIO AQUÍ
 
+    // --- Categorías ---
     @GET("api/categorias")
-    suspend fun getCategorias(): List<CategoriaResponse>
+    suspend fun getCategorias(): Response<List<CategoriaResponse>> // <<< CAMBIO AQUÍ
 
+    // --- Productos ---
     @GET("api/productos/categoria/{categoriaId}")
-    suspend fun getProductosPorCategoria(@Path("categoriaId") categoriaId: Long): List<ProductoResponse>
+    suspend fun getProductosPorCategoria(@Path("categoriaId") categoriaId: Long): Response<List<ProductoResponse>> // <<< CAMBIO AQUÍ
 }
 
-// Modelos para las reviews
+
+
 data class ReviewRequest(
     val productId: String,
     val productName: String,
@@ -50,21 +60,27 @@ data class ReviewResponse(
 
 data class CategoriaResponse(
     val id: Long,
-    val nombre: String
+    val nombre: String,
+    val descripcion: String?, // Añadido
+    val imagenUrl: String?
 )
 
 data class ProductoResponse(
     val id: Long,
     val nombre: String,
-    val descripcion: String? = null,
-    val precio: Double? = null,
-    val categoria: CategoriaResponse? = null
+    val descripcion: String?,
+    val precio: Double?,
+    val imagenUrl: String?,    // Añadido
+    val categoria: String
 )
 
-object RetrofitClient {
-    private const val BASE_URL = "http://10.0.2.2:8080/"
 
-    val instance: Retrofit by lazy {
+
+object RetrofitClient {
+
+    private const val BASE_URL = "http://192.168.100.8:8081/"
+
+    val apiService: ApiService by lazy {
         val logging = HttpLoggingInterceptor().apply {
             level = HttpLoggingInterceptor.Level.BODY
         }
@@ -80,9 +96,6 @@ object RetrofitClient {
             .client(client)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
-    }
-
-    val apiService: ApiService by lazy {
-        instance.create(ApiService::class.java)
+            .create(ApiService::class.java)
     }
 }
