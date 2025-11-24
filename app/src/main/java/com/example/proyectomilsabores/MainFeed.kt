@@ -22,6 +22,8 @@ import androidx.core.content.FileProvider
 import com.example.proyectomilsabores.R
 import com.example.proyectomilsabores.api.*
 import com.example.proyectomilsabores.data.UserRepository
+import com.journeyapps.barcodescanner.ScanContract
+import com.journeyapps.barcodescanner.ScanOptions
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -29,14 +31,13 @@ import java.io.File
 
 class MainFeed : AppCompatActivity() {
 
-
     private lateinit var spCat: Spinner
     private lateinit var spProd: Spinner
     private lateinit var btnEnviarOp: Button
     private lateinit var btnFto: Button
     private lateinit var etxOpinion: EditText
     private lateinit var ivPreview: ImageView
-
+    private lateinit var btnScanQr: ImageButton
 
     private var currentProductId: String? = null
     private var currentProductName: String? = null
@@ -44,14 +45,18 @@ class MainFeed : AppCompatActivity() {
     private var currentImageUri: Uri? = null
     private var currentBitmap: Bitmap? = null
 
+    // Scanner QR
+    private val qrLauncher = registerForActivityResult(ScanContract()) { result ->
+        if (result.contents == null) return@registerForActivityResult
+
+        val scannedProductId = result.contents.trim()
+        handleScannedProductId(scannedProductId)
+    }
 
     private val requestCameraPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
-            if (isGranted) takePhoto() else Toast.makeText(
-                this,
-                "Permiso de cámara denegado.",
-                Toast.LENGTH_LONG
-            ).show()
+            if (isGranted) takePhoto()
+            else Toast.makeText(this, "Permiso de cámara denegado.", Toast.LENGTH_LONG).show()
         }
 
     private val takePictureLauncher =
@@ -73,7 +78,6 @@ class MainFeed : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        // Carga los datos solo si el spinner de categorías está vacío, para evitar recargas.
         if (spCat.adapter == null || spCat.adapter.count <= 1) {
             loadCategorias()
         }
@@ -86,11 +90,103 @@ class MainFeed : AppCompatActivity() {
         btnFto = findViewById(R.id.btn_fto)
         etxOpinion = findViewById(R.id.etx_opinion)
         ivPreview = findViewById(R.id.iv_preview)
+
+        btnScanQr = findViewById(R.id.btn_scan_qr)  // AÑADIR ESTE BOTÓN EN TU XML
     }
 
     private fun setupClickListeners() {
         btnFto.setOnClickListener { showPhotoOptionsDialog() }
         btnEnviarOp.setOnClickListener { submitReview() }
+        btnScanQr.setOnClickListener { openQrScanner() }
+    }
+
+    // Abrir lector QR
+    private fun openQrScanner() {
+        val options = ScanOptions()
+        options.setPrompt("Escanea el código QR del producto")
+        options.setBeepEnabled(true)
+        options.setOrientationLocked(true)
+        qrLauncher.launch(options)
+    }
+
+    // Procesar ID escaneado
+    private fun handleScannedProductId(productId: String) {
+        CoroutineScope(Dispatchers.Main).launch {
+            try {
+                val response = RetrofitClient.apiService.getProductoById(productId.toLong())
+
+                if (response.isSuccessful) {
+                    val producto = response.body() ?: return@launch
+
+                    currentProductId = producto.id.toString()
+                    currentProductName = producto.nombre
+
+                    // Cargar categorías y seleccionar automáticamente
+                    loadCategorias {
+                        selectCategoryAndProduct(producto)
+                    }
+
+                    Toast.makeText(this@MainFeed, "Producto detectado: ${producto.nombre}", Toast.LENGTH_LONG).show()
+                } else {
+                    Toast.makeText(this@MainFeed, "Producto no encontrado", Toast.LENGTH_LONG).show()
+                }
+            } catch (e: Exception) {
+                Toast.makeText(this@MainFeed, "Error al buscar producto", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
+
+    private fun loadCategorias(onLoaded: (() -> Unit)? = null) {
+        CoroutineScope(Dispatchers.Main).launch {
+            try {
+                val response = RetrofitClient.apiService.getCategorias()
+                if (response.isSuccessful) {
+                    val categorias = response.body() ?: emptyList()
+                    setupCategoriaSpinner(categorias)
+                    onLoaded?.invoke()
+                }
+            } catch (_: Exception) {}
+        }
+    }
+
+    // Selecciona automaticamente CAT + PRODUCTO
+    private fun selectCategoryAndProduct(producto: ProductoResponse) {
+
+        val categoriaNombre = producto.categoria
+
+        val adapter = spCat.adapter
+        if (adapter != null) {
+
+            // Seleccionar categoría comparando Strings
+            for (i in 1 until adapter.count) {
+                if (adapter.getItem(i) == categoriaNombre) {
+                    spCat.setSelection(i)
+                    break
+                }
+            }
+
+            CoroutineScope(Dispatchers.Main).launch {
+                // Buscar categoría por nombre
+                val categoriasResp = RetrofitClient.apiService.getCategorias()
+                val categorias = categoriasResp.body() ?: emptyList()
+
+                val categoriaObj = categorias.find { it.nombre == categoriaNombre }
+                if (categoriaObj != null) {
+                    val prodsResponse = RetrofitClient.apiService.getProductosPorCategoria(categoriaObj.id)
+                    val productos = prodsResponse.body() ?: emptyList()
+
+                    setupProductoSpinner(productos)
+
+                    for (i in 1 until spProd.adapter.count) {
+                        if (spProd.adapter.getItem(i) == producto.nombre) {
+                            spProd.setSelection(i)
+                            break
+                        }
+                    }
+                }
+            }
+        }
     }
 
 
@@ -99,16 +195,13 @@ class MainFeed : AppCompatActivity() {
             .setTitle("Subir Foto")
             .setItems(arrayOf("Tomar Foto", "Elegir de Galería")) { _, which ->
                 if (which == 0) checkCameraPermissionAndTakePhoto() else chooseFromGallery()
-            }
-            .show()
+            }.show()
     }
 
     private fun checkCameraPermissionAndTakePhoto() {
         when {
-            ContextCompat.checkSelfPermission(
-                this,
-                Manifest.permission.CAMERA
-            ) == PackageManager.PERMISSION_GRANTED -> takePhoto()
+            ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
+                    == PackageManager.PERMISSION_GRANTED -> takePhoto()
 
             else -> requestCameraPermissionLauncher.launch(Manifest.permission.CAMERA)
         }
@@ -116,13 +209,8 @@ class MainFeed : AppCompatActivity() {
 
     private fun takePhoto() {
         try {
-            val photoFile =
-                File.createTempFile("JPEG_${System.currentTimeMillis()}_", ".jpg", externalCacheDir)
-            currentImageUri = FileProvider.getUriForFile(
-                this,
-                "${applicationContext.packageName}.provider",
-                photoFile
-            )
+            val photoFile = File.createTempFile("JPEG_${System.currentTimeMillis()}_", ".jpg", externalCacheDir)
+            currentImageUri = FileProvider.getUriForFile(this, "${applicationContext.packageName}.provider", photoFile)
             takePictureLauncher.launch(currentImageUri)
         } catch (ex: Exception) {
             Toast.makeText(this, "Error al crear archivo para la foto.", Toast.LENGTH_LONG).show()
@@ -139,20 +227,17 @@ class MainFeed : AppCompatActivity() {
             ivPreview.setImageBitmap(currentBitmap)
             ivPreview.visibility = View.VISIBLE
             Toast.makeText(this, successMessage, Toast.LENGTH_SHORT).show()
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             Toast.makeText(this, "Error al procesar la imagen.", Toast.LENGTH_LONG).show()
         }
     }
 
     private fun uriToBitmap(uri: Uri): Bitmap {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P)
             ImageDecoder.decodeBitmap(ImageDecoder.createSource(this.contentResolver, uri))
-        } else {
-            @Suppress("DEPRECATION")
+        else
             MediaStore.Images.Media.getBitmap(this.contentResolver, uri)
-        }
     }
-
 
     private fun submitReview() {
         val opinion = etxOpinion.text.toString().trim()
@@ -184,11 +269,12 @@ class MainFeed : AppCompatActivity() {
                     imageUrls = emptyList()
                 )
 
-                val response =
-                    RetrofitClient.apiService.submitReview(reviewRequest.productId, reviewRequest)
+                val response = RetrofitClient.apiService.submitReview(
+                    reviewRequest.productId,
+                    reviewRequest
+                )
 
                 if (response.isSuccessful) {
-
                     val reviewResponse = response.body()
                     clearForm()
                     Toast.makeText(
@@ -196,14 +282,7 @@ class MainFeed : AppCompatActivity() {
                         "¡Gracias! Opinión enviada (ID: ${reviewResponse?.id})",
                         Toast.LENGTH_LONG
                     ).show()
-                    Log.d("API_SUCCESS", "Reseña enviada con éxito: ${response.code()}")
                 } else {
-
-                    val errorBody = response.errorBody()?.string()
-                    Log.e(
-                        "API_ERROR",
-                        "Error al enviar la reseña. Código: ${response.code()}. Body: $errorBody"
-                    )
                     Toast.makeText(
                         this@MainFeed,
                         "Error del servidor: ${response.code()}",
@@ -212,10 +291,9 @@ class MainFeed : AppCompatActivity() {
                 }
 
             } catch (e: Exception) {
-                Log.e("API_ERROR", "Fallo de conexión al enviar reseña: ${e.message}", e)
                 Toast.makeText(
                     this@MainFeed,
-                    "Fallo de conexión. Revisa el Logcat.",
+                    "Fallo de conexión. Revisa tu red.",
                     Toast.LENGTH_LONG
                 ).show()
             } finally {
@@ -236,46 +314,6 @@ class MainFeed : AppCompatActivity() {
     private fun getCurrentUserId(): String = UserRepository(this).getUserId() ?: "user_unknown"
     private fun getCurrentUserName(): String = UserRepository(this).getUserName() ?: "Usuario"
 
-
-    private fun loadCategorias() {
-        CoroutineScope(Dispatchers.Main).launch {
-            try {
-                val response = RetrofitClient.apiService.getCategorias()
-
-                if (response.isSuccessful) {
-                    val categorias = response.body() ?: emptyList()
-                    if (categorias.isNotEmpty()) {
-                        Log.d("API_SUCCESS", "Categorías cargadas: ${categorias.size}")
-                        setupCategoriaSpinner(categorias)
-                    } else {
-                        Log.w("API_WARN", "La API devolvió 0 categorías.")
-                        Toast.makeText(
-                            this@MainFeed,
-                            "No se encontraron categorías.",
-                            Toast.LENGTH_LONG
-                        ).show()
-                    }
-                } else {
-
-                    Log.e("API_ERROR", "Error cargando categorías. Código: ${response.code()}")
-                    Toast.makeText(
-                        this@MainFeed,
-                        "Error al cargar categorías: ${response.code()}",
-                        Toast.LENGTH_LONG
-                    ).show()
-                }
-            } catch (e: Exception) {
-
-                Log.e("API_ERROR", "Fallo de conexión al cargar categorías: ${e.message}")
-                Toast.makeText(
-                    this@MainFeed,
-                    "Fallo de conexión. Revisa tu red.",
-                    Toast.LENGTH_LONG
-                ).show()
-            }
-        }
-    }
-
     private fun setupCategoriaSpinner(categorias: List<CategoriaResponse>) {
         val categoriaNombres = categorias.map { it.nombre }
         val adapter = HintAdapter(
@@ -286,13 +324,9 @@ class MainFeed : AppCompatActivity() {
         )
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         spCat.adapter = adapter
+
         spCat.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(
-                parent: AdapterView<*>,
-                view: View?,
-                position: Int,
-                id: Long
-            ) {
+            override fun onItemSelected(parent: AdapterView<*>, view: View?, position: Int, id: Long) {
                 if (position > 0) {
                     val categoria = categorias[position - 1]
                     currentCategory = categoria.nombre
@@ -312,26 +346,9 @@ class MainFeed : AppCompatActivity() {
                 val response = RetrofitClient.apiService.getProductosPorCategoria(categoriaId)
                 if (response.isSuccessful) {
                     val productos = response.body() ?: emptyList()
-                    Log.d(
-                        "API_SUCCESS",
-                        "Productos para categoría $categoriaId cargados: ${productos.size}"
-                    )
                     setupProductoSpinner(productos)
-                    Log.e("API_ERROR", "Error cargando productos. Código: ${response.code()}")
-                    Toast.makeText(
-                        this@MainFeed,
-                        "Error al cargar productos: ${response.code()}",
-                        Toast.LENGTH_LONG
-                    ).show()
-                    setupProductoSpinner(emptyList())
                 }
-            } catch (e: Exception) {
-                Log.e("API_ERROR", "Fallo de conexión al cargar productos: ${e.message}")
-                Toast.makeText(
-                    this@MainFeed,
-                    "Fallo de conexión. Revisa tu red.",
-                    Toast.LENGTH_LONG
-                ).show()
+            } catch (_: Exception) {
                 setupProductoSpinner(emptyList())
             }
         }
@@ -347,13 +364,9 @@ class MainFeed : AppCompatActivity() {
         )
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         spProd.adapter = adapter
+
         spProd.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(
-                parent: AdapterView<*>,
-                view: View?,
-                position: Int,
-                id: Long
-            ) {
+            override fun onItemSelected(parent: AdapterView<*>, view: View?, position: Int, id: Long) {
                 if (position > 0) {
                     val producto = productos[position - 1]
                     currentProductId = producto.id.toString()
@@ -368,8 +381,11 @@ class MainFeed : AppCompatActivity() {
         }
     }
 
-    private class HintAdapter(context: Context, resource: Int, private val items: List<String>, private val hint: String) :
-        ArrayAdapter<String>(context, resource, items) {
+    private class HintAdapter(
+        context: Context, resource: Int,
+        private val items: List<String>, private val hint: String
+    ) : ArrayAdapter<String>(context, resource, items) {
+
         override fun getCount(): Int = super.getCount() + 1
         override fun getItem(position: Int): String = if (position == 0) hint else super.getItem(position - 1)!!
         override fun isEnabled(position: Int): Boolean = position != 0

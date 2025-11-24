@@ -12,22 +12,30 @@ import retrofit2.http.Path
 import java.util.concurrent.TimeUnit
 
 interface ApiService {
+
     // --- Reviews ---
     @POST("api/productos/{productId}/reviews")
     suspend fun submitReview(
-        @Path("productId") productId: String, // <-- Parámetro para la URL
+        @Path("productId") productId: String,
         @Body reviewRequest: ReviewRequest
     ): Response<ReviewResponse>
+
     @GET("api/productos/{productoId}/reviews")
-    suspend fun getReviewsForProduct(@Path("productoId") id: Long): Response<List<ReviewResponse>> // <<< CAMBIO AQUÍ
+    suspend fun getReviewsForProduct(@Path("productoId") id: Long): Response<List<ReviewResponse>>
+
 
     // --- Categorías ---
     @GET("api/categorias")
-    suspend fun getCategorias(): Response<List<CategoriaResponse>> // <<< CAMBIO AQUÍ
+    suspend fun getCategorias(): Response<List<CategoriaResponse>>
+
 
     // --- Productos ---
     @GET("api/productos/categoria/{categoriaId}")
-    suspend fun getProductosPorCategoria(@Path("categoriaId") categoriaId: Long): Response<List<ProductoResponse>> // <<< CAMBIO AQUÍ
+    suspend fun getProductosPorCategoria(@Path("categoriaId") categoriaId: Long): Response<List<ProductoResponse>>
+
+    // ⭐ NECESARIO PARA EL QR ⭐
+    @GET("api/productos/{productoId}")
+    suspend fun getProductoById(@Path("productoId") productoId: Long): Response<ProductoResponse>
 }
 
 

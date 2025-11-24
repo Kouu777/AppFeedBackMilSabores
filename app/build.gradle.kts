@@ -57,6 +57,12 @@ dependencies {
     implementation(libs.androidx.activity)
     implementation(libs.androidx.constraintlayout)
 
+    // QR
+    implementation("com.google.mlkit:barcode-scanning:17.2.0")
+    implementation ("com.journeyapps:zxing-android-embedded:4.3.0")
+
+
+
     // Autenticación de Google y Coroutines para Play Services
     implementation("com.google.android.gms:play-services-auth:21.0.0")
     // ESTA ES LA DEPENDENCIA CLAVE QUE SOLUCIONA EL ERROR:
