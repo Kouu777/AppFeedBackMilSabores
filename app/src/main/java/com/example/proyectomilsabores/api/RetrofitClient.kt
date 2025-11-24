@@ -78,7 +78,7 @@ data class ProductoResponse(
     val nombre: String,
     val descripcion: String?,
     val precio: Double?,
-    val imagenUrl: String?,    // Añadido
+    val imagenUrl: String?,
     val categoria: String
 )
 
@@ -86,7 +86,7 @@ data class ProductoResponse(
 
 object RetrofitClient {
 
-    private const val BASE_URL = "http://192.168.100.8:8081/"
+    private const val BASE_URL = "http://10.0.2.2:8081/"
 
     val apiService: ApiService by lazy {
         val logging = HttpLoggingInterceptor().apply {
