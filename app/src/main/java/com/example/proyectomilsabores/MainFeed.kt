@@ -233,6 +233,7 @@ class MainFeed : AppCompatActivity() {
         spCat.setSelection(0)
     }
 
+
     private fun getCurrentUserId(): String = UserRepository(this).getUserId() ?: "user_unknown"
     private fun getCurrentUserName(): String = UserRepository(this).getUserName() ?: "Usuario"
 
