@@ -13,9 +13,6 @@ android {
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
-
-
-
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -28,6 +25,12 @@ android {
             )
         }
     }
+
+    // 🚨 NECESARIO para que funcione ActivityScannerBinding
+    buildFeatures {
+        viewBinding = true
+    }
+
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
@@ -44,31 +47,31 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
+
     kotlinOptions {
         jvmTarget = "11"
     }
 }
 
 dependencies {
-    // Dependencias Principales de AndroidX y Material
+
+    // Android básico
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
     implementation(libs.androidx.activity)
     implementation(libs.androidx.constraintlayout)
 
-    // QR
+    // ML Kit QR
     implementation("com.google.mlkit:barcode-scanning:17.2.0")
-    implementation ("com.journeyapps:zxing-android-embedded:4.3.0")
 
+    // (Opcionales) otros scanners que estabas usando
+    implementation("com.journeyapps:zxing-android-embedded:4.3.0")
+    implementation("com.google.android.gms:play-services-code-scanner:16.1.0")
 
-
-    // Autenticación de Google y Coroutines para Play Services
+    // Google Auth + Coroutines
     implementation("com.google.android.gms:play-services-auth:21.0.0")
-    // ESTA ES LA DEPENDENCIA CLAVE QUE SOLUCIONA EL ERROR:
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
-
-    // Coroutines para Android
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
 
     // Retrofit
@@ -81,11 +84,8 @@ dependencies {
     implementation("androidx.camera:camera-lifecycle:1.3.0")
     implementation("androidx.camera:camera-view:1.3.0")
 
-    // Dependencias de Testing
+    // Testing
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
 }
-
-
-
