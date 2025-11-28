@@ -112,7 +112,7 @@ class MainFeed : AppCompatActivity() {
         }
     }
 
- =
+
     // LÓGICA QR
 
     private fun handleQrResult(value: String) {
