@@ -23,8 +23,11 @@ import androidx.core.content.FileProvider
 import androidx.lifecycle.lifecycleScope
 import com.example.proyectomilsabores.R
 import com.example.proyectomilsabores.ScanQr.ScannerActivity
-import com.example.proyectomilsabores.api.*
+import com.example.proyectomilsabores.api.RetrofitClient
+import com.example.proyectomilsabores.api.ReviewRequest
 import com.example.proyectomilsabores.data.UserRepository
+import com.example.proyectomilsabores.api.ProductoResponse
+import com.example.proyectomilsabores.api.CategoriaResponse
 import kotlinx.coroutines.launch
 import java.io.File
 
@@ -44,9 +47,10 @@ class MainFeed : AppCompatActivity() {
     private var currentImageUri: Uri? = null
     private var currentBitmap: Bitmap? = null
 
+    private var pendingCategoriaNombreFromQr: String? = null
+    private var pendingProductoIdFromQr: Long? = null
 
-    // ==================== QR RESULT ====================
-
+    // RESULTADO QR
     private val qrScanLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             if (result.resultCode == RESULT_OK) {
@@ -57,9 +61,7 @@ class MainFeed : AppCompatActivity() {
             }
         }
 
-
-    // ==================== CAMERA / GALLERY ====================
-
+    // CAMERA Y GALLERY
     private val requestCameraPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
             if (isGranted) takePhoto()
@@ -76,8 +78,6 @@ class MainFeed : AppCompatActivity() {
             uri?.let { processImageUri(it, "Imagen seleccionada") }
         }
 
-
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_feed)
@@ -87,12 +87,10 @@ class MainFeed : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-
         if (spCat.adapter == null || spCat.adapter.count <= 1) {
             lifecycleScope.launch { loadCategorias() }
         }
     }
-
 
     private fun initializeViews() {
         spCat = findViewById(R.id.sp_cat)
@@ -104,7 +102,6 @@ class MainFeed : AppCompatActivity() {
         btnScanQr = findViewById(R.id.btn_scanqr)
     }
 
-
     private fun setupClickListeners() {
         btnFto.setOnClickListener { showPhotoOptionsDialog() }
         btnEnviarOp.setOnClickListener { submitReview() }
@@ -115,14 +112,11 @@ class MainFeed : AppCompatActivity() {
         }
     }
 
-
-    // ============================================================
-    //                     🔥 LÓGICA DEL QR
-    // ============================================================
+ =
+    // LÓGICA QR
 
     private fun handleQrResult(value: String) {
         Log.d("QR_HANDLER", "Valor QR: $value")
-
         if (!value.contains(";")) {
             Toast.makeText(this, "QR inválido", Toast.LENGTH_LONG).show()
             return
@@ -134,71 +128,48 @@ class MainFeed : AppCompatActivity() {
             return
         }
 
-        val categoriaId = parts[0].toLongOrNull()
-        val productoId = parts[1].toLongOrNull()
-
-        if (categoriaId == null || productoId == null) {
-            Toast.makeText(this, "IDs inválidos en el QR", Toast.LENGTH_LONG).show()
+        val categoriaNombre = parts[0].trim()
+        val productoId = parts[1].trim().toLongOrNull()
+        if (productoId == null) {
+            Toast.makeText(this, "ID de producto inválido", Toast.LENGTH_LONG).show()
             return
         }
 
+        pendingCategoriaNombreFromQr = categoriaNombre
+        pendingProductoIdFromQr = productoId
+
         lifecycleScope.launch {
-            loadCategorias {
-                selectCategoryAndProduct(categoriaId, productoId)
-            }
-        }
-    }
+            val categorias = loadCategorias() // carga categorías y retorna lista
+            val categoria = categorias.find { it.nombre.equals(categoriaNombre, ignoreCase = true) }
+            if (categoria != null) {
+                val indexCat = categorias.indexOf(categoria)
+                spCat.setSelection(indexCat + 1) // dispara onItemSelected
 
-
-    private fun selectCategoryAndProduct(catId: Long, prodId: Long) {
-        lifecycleScope.launch {
-
-            val categorias = RetrofitClient.apiService.getCategorias().body() ?: return@launch
-
-            val indexCat = categorias.indexOfFirst { it.id == catId }
-            if (indexCat == -1) {
+                val productos = loadProductos(categoria.id) // carga productos y espera
+                val indexProd = productos.indexOfFirst { it.id == productoId }
+                if (indexProd != -1) spProd.setSelection(indexProd + 1)
+            } else {
                 Toast.makeText(this@MainFeed, "Categoría del QR no encontrada", Toast.LENGTH_LONG).show()
-                return@launch
             }
 
-            spCat.setSelection(indexCat + 1)
-
-            val productos = RetrofitClient.apiService.getProductosPorCategoria(catId).body() ?: return@launch
-            val indexProd = productos.indexOfFirst { it.id == prodId }
-
-            if (indexProd != -1) {
-                spProd.setSelection(indexProd + 1)
-                Toast.makeText(this@MainFeed, "Producto seleccionado por QR", Toast.LENGTH_LONG).show()
-            }
+            pendingCategoriaNombreFromQr = null
+            pendingProductoIdFromQr = null
         }
     }
 
 
-    // ============================================================
-    //                     🔥 CARGAR CATEGORÍAS
-    // ============================================================
+    // CARGAR CATEGORÍAS
 
-    private suspend fun loadCategorias(onLoaded: (() -> Unit)? = null) {
+    private suspend fun loadCategorias(): List<CategoriaResponse> {
         val response = RetrofitClient.apiService.getCategorias()
-
-        if (response.isSuccessful) {
-            val categorias = response.body() ?: emptyList()
-            setupCategoriaSpinner(categorias)
-            onLoaded?.invoke()
-        }
+        val categorias = response.body() ?: emptyList()
+        setupCategoriaSpinner(categorias)
+        return categorias
     }
-
 
     private fun setupCategoriaSpinner(categorias: List<CategoriaResponse>) {
-        val categoriaNombres = categorias.map { it.nombre }
-
-        val adapter = HintAdapter(
-            this,
-            android.R.layout.simple_spinner_item,
-            categoriaNombres,
-            "Selecciona una categoría"
-        )
-
+        val nombres = categorias.map { it.nombre }
+        val adapter = HintAdapter(this, android.R.layout.simple_spinner_item, nombres, "Selecciona una categoría")
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         spCat.adapter = adapter
 
@@ -207,37 +178,23 @@ class MainFeed : AppCompatActivity() {
                 if (position > 0) {
                     val categoria = categorias[position - 1]
                     currentCategory = categoria.nombre
-
-                    lifecycleScope.launch {
-                        loadProductos(categoria.id)
-                    }
+                    lifecycleScope.launch { loadProductos(categoria.id) }
                 }
             }
-
             override fun onNothingSelected(parent: AdapterView<*>) {}
         }
     }
 
-
-    private suspend fun loadProductos(categoriaId: Long) {
+    private suspend fun loadProductos(categoriaId: Long): List<ProductoResponse> {
         val response = RetrofitClient.apiService.getProductosPorCategoria(categoriaId)
-
-        if (response.isSuccessful) {
-            setupProductoSpinner(response.body() ?: emptyList())
-        }
+        val productos = response.body() ?: emptyList()
+        setupProductoSpinner(productos)
+        return productos
     }
 
-
     private fun setupProductoSpinner(productos: List<ProductoResponse>) {
-        val productNombres = productos.map { it.nombre }
-
-        val adapter = HintAdapter(
-            this,
-            android.R.layout.simple_spinner_item,
-            productNombres,
-            "Selecciona un producto"
-        )
-
+        val nombres = productos.map { it.nombre }
+        val adapter = HintAdapter(this, android.R.layout.simple_spinner_item, nombres, "Selecciona un producto")
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         spProd.adapter = adapter
 
@@ -249,56 +206,40 @@ class MainFeed : AppCompatActivity() {
                     currentProductName = producto.nombre
                 }
             }
-
             override fun onNothingSelected(parent: AdapterView<*>) {}
         }
     }
 
 
-
-    // ============================================================
-    //                     FOTO, GALERÍA, REVIEW
-    // ============================================================
-
+    // FOTO, GALERÍA Y REVIEW
     private fun showPhotoOptionsDialog() {
         AlertDialog.Builder(this)
             .setTitle("Subir Foto")
             .setItems(arrayOf("Tomar Foto", "Elegir de Galería")) { _, which ->
-                if (which == 0) checkCameraPermissionAndTakePhoto()
-                else chooseFromGallery()
+                if (which == 0) checkCameraPermissionAndTakePhoto() else chooseFromGallery()
             }
             .show()
     }
 
     private fun checkCameraPermissionAndTakePhoto() {
         when {
-            ContextCompat.checkSelfPermission(
-                this,
-                Manifest.permission.CAMERA
-            ) == PackageManager.PERMISSION_GRANTED -> takePhoto()
-
+            ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED ->
+                takePhoto()
             else -> requestCameraPermissionLauncher.launch(Manifest.permission.CAMERA)
         }
     }
 
     private fun takePhoto() {
         try {
-            val photoFile =
-                File.createTempFile("JPEG_${System.currentTimeMillis()}_", ".jpg", externalCacheDir)
-            currentImageUri = FileProvider.getUriForFile(
-                this,
-                "${applicationContext.packageName}.provider",
-                photoFile
-            )
+            val photoFile = File.createTempFile("JPEG_${System.currentTimeMillis()}_", ".jpg", externalCacheDir)
+            currentImageUri = FileProvider.getUriForFile(this, "${applicationContext.packageName}.provider", photoFile)
             takePictureLauncher.launch(currentImageUri)
         } catch (ex: Exception) {
             Toast.makeText(this, "Error al crear archivo para la foto.", Toast.LENGTH_LONG).show()
         }
     }
 
-    private fun chooseFromGallery() {
-        pickImageLauncher.launch("image/*")
-    }
+    private fun chooseFromGallery() { pickImageLauncher.launch("image/*") }
 
     private fun processImageUri(uri: Uri, successMessage: String) {
         try {
@@ -311,32 +252,19 @@ class MainFeed : AppCompatActivity() {
         }
     }
 
-    private fun uriToBitmap(uri: Uri): Bitmap {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+    private fun uriToBitmap(uri: Uri): Bitmap =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P)
             ImageDecoder.decodeBitmap(ImageDecoder.createSource(this.contentResolver, uri))
-        } else {
+        else
             @Suppress("DEPRECATION")
             MediaStore.Images.Media.getBitmap(this.contentResolver, uri)
-        }
-    }
 
 
-    // ============================================================
-    //                     ENVIAR REVIEW
-    // ============================================================
-
+    //ENVIAR REVIEW
     private fun submitReview() {
         val opinion = etxOpinion.text.toString().trim()
-
-        if (currentProductId == null) {
-            Toast.makeText(this, "Por favor selecciona un producto", Toast.LENGTH_LONG).show()
-            return
-        }
-
-        if (opinion.isEmpty()) {
-            Toast.makeText(this, "Por favor escribe tu opinión", Toast.LENGTH_LONG).show()
-            return
-        }
+        if (currentProductId == null) { Toast.makeText(this, "Selecciona un producto", Toast.LENGTH_LONG).show(); return }
+        if (opinion.isEmpty()) { Toast.makeText(this, "Escribe tu opinión", Toast.LENGTH_LONG).show(); return }
 
         btnEnviarOp.isEnabled = false
         btnEnviarOp.text = "Enviando..."
@@ -355,38 +283,21 @@ class MainFeed : AppCompatActivity() {
                     imageUrls = emptyList()
                 )
 
-                val response =
-                    RetrofitClient.apiService.submitReview(reviewRequest.productId, reviewRequest)
-
+                val response = RetrofitClient.apiService.submitReview(reviewRequest.productId, reviewRequest)
                 if (response.isSuccessful) {
                     val reviewResponse = response.body()
                     clearForm()
-                    Toast.makeText(
-                        this@MainFeed,
-                        "¡Gracias! Opinión enviada (ID: ${reviewResponse?.id})",
-                        Toast.LENGTH_LONG
-                    ).show()
-                } else {
-                    Toast.makeText(
-                        this@MainFeed,
-                        "Error del servidor: ${response.code()}",
-                        Toast.LENGTH_LONG
-                    ).show()
-                }
+                    Toast.makeText(this@MainFeed, "¡Gracias! Opinión enviada (ID: ${reviewResponse?.id})", Toast.LENGTH_LONG).show()
+                } else Toast.makeText(this@MainFeed, "Error del servidor: ${response.code()}", Toast.LENGTH_LONG).show()
 
             } catch (e: Exception) {
-                Toast.makeText(
-                    this@MainFeed,
-                    "Fallo de conexión.",
-                    Toast.LENGTH_LONG
-                ).show()
+                Toast.makeText(this@MainFeed, "Fallo de conexión.", Toast.LENGTH_LONG).show()
             } finally {
                 btnEnviarOp.isEnabled = true
                 btnEnviarOp.text = "Enviar reseña"
             }
         }
     }
-
 
     private fun clearForm() {
         etxOpinion.text.clear()
@@ -396,27 +307,17 @@ class MainFeed : AppCompatActivity() {
         spCat.setSelection(0)
     }
 
-
     private fun getCurrentUserId(): String = UserRepository(this).getUserId() ?: "user_unknown"
     private fun getCurrentUserName(): String = UserRepository(this).getUserName() ?: "Usuario"
 
 
-    // ============================================================
-    //                     ADAPTER CON HINT
-    // ============================================================
+    //HINT
 
-    private class HintAdapter(
-        context: Context,
-        resource: Int,
-        private val items: List<String>,
-        private val hint: String
-    ) : ArrayAdapter<String>(context, resource, items) {
+    private class HintAdapter(context: Context, resource: Int, private val items: List<String>, private val hint: String)
+        : ArrayAdapter<String>(context, resource, items) {
 
         override fun getCount(): Int = super.getCount() + 1
-
-        override fun getItem(position: Int): String =
-            if (position == 0) hint else super.getItem(position - 1)!!
-
+        override fun getItem(position: Int): String = if (position == 0) hint else super.getItem(position - 1)!!
         override fun isEnabled(position: Int): Boolean = position != 0
 
         override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {

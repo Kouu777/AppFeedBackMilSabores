@@ -69,7 +69,7 @@ data class ReviewResponse(
 data class CategoriaResponse(
     val id: Long,
     val nombre: String,
-    val descripcion: String?, // Añadido
+    val descripcion: String?,
     val imagenUrl: String?
 )
 
