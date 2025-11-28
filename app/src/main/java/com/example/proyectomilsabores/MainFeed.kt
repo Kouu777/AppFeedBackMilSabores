@@ -12,6 +12,11 @@ import android.os.Build
 import android.os.Bundle
 import android.provider.MediaStore
 import android.util.Log
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody
+import okhttp3.RequestBody.Companion.asRequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import android.view.View
 import android.view.ViewGroup
 import android.widget.*
@@ -114,7 +119,6 @@ class MainFeed : AppCompatActivity() {
 
 
     // LÓGICA QR
-
     private fun handleQrResult(value: String) {
         Log.d("QR_HANDLER", "Valor QR: $value")
         if (!value.contains(";")) {
@@ -135,31 +139,26 @@ class MainFeed : AppCompatActivity() {
             return
         }
 
-        pendingCategoriaNombreFromQr = categoriaNombre
-        pendingProductoIdFromQr = productoId
-
         lifecycleScope.launch {
-            val categorias = loadCategorias() // carga categorías y retorna lista
+            val categorias = loadCategorias()
             val categoria = categorias.find { it.nombre.equals(categoriaNombre, ignoreCase = true) }
+
             if (categoria != null) {
                 val indexCat = categorias.indexOf(categoria)
-                spCat.setSelection(indexCat + 1) // dispara onItemSelected
+                spCat.setSelection(indexCat + 1) // disparará onItemSelected
 
-                val productos = loadProductos(categoria.id) // carga productos y espera
-                val indexProd = productos.indexOfFirst { it.id == productoId }
-                if (indexProd != -1) spProd.setSelection(indexProd + 1)
+                // Cargar productos y asignar adapter con selección
+                val productos = loadProductos(categoria.id)
+                setupProductoSpinner(productos, productoId)
+
             } else {
                 Toast.makeText(this@MainFeed, "Categoría del QR no encontrada", Toast.LENGTH_LONG).show()
             }
-
-            pendingCategoriaNombreFromQr = null
-            pendingProductoIdFromQr = null
         }
     }
 
 
     // CARGAR CATEGORÍAS
-
     private suspend fun loadCategorias(): List<CategoriaResponse> {
         val response = RetrofitClient.apiService.getCategorias()
         val categorias = response.body() ?: emptyList()
@@ -187,12 +186,10 @@ class MainFeed : AppCompatActivity() {
 
     private suspend fun loadProductos(categoriaId: Long): List<ProductoResponse> {
         val response = RetrofitClient.apiService.getProductosPorCategoria(categoriaId)
-        val productos = response.body() ?: emptyList()
-        setupProductoSpinner(productos)
-        return productos
+        return response.body() ?: emptyList()
     }
 
-    private fun setupProductoSpinner(productos: List<ProductoResponse>) {
+    private fun setupProductoSpinner(productos: List<ProductoResponse>, productoIdToSelect: Long? = null) {
         val nombres = productos.map { it.nombre }
         val adapter = HintAdapter(this, android.R.layout.simple_spinner_item, nombres, "Selecciona un producto")
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
@@ -206,10 +203,18 @@ class MainFeed : AppCompatActivity() {
                     currentProductName = producto.nombre
                 }
             }
+
             override fun onNothingSelected(parent: AdapterView<*>) {}
         }
-    }
 
+        // Seleccionar producto si se pasó un ID
+        productoIdToSelect?.let { id ->
+            val index = productos.indexOfFirst { it.id == id }
+            if (index != -1) {
+                spProd.post { spProd.setSelection(index + 1) }
+            }
+        }
+    }
 
     // FOTO, GALERÍA Y REVIEW
     private fun showPhotoOptionsDialog() {
@@ -260,35 +265,52 @@ class MainFeed : AppCompatActivity() {
             MediaStore.Images.Media.getBitmap(this.contentResolver, uri)
 
 
-    //ENVIAR REVIEW
+    // ENVIAR REVIEW
     private fun submitReview() {
         val opinion = etxOpinion.text.toString().trim()
-        if (currentProductId == null) { Toast.makeText(this, "Selecciona un producto", Toast.LENGTH_LONG).show(); return }
-        if (opinion.isEmpty()) { Toast.makeText(this, "Escribe tu opinión", Toast.LENGTH_LONG).show(); return }
+        if (currentProductId == null) {
+            Toast.makeText(this, "Selecciona un producto", Toast.LENGTH_LONG).show()
+            return
+        }
+        if (opinion.isEmpty()) {
+            Toast.makeText(this, "Escribe tu opinión", Toast.LENGTH_LONG).show()
+            return
+        }
 
         btnEnviarOp.isEnabled = false
         btnEnviarOp.text = "Enviando..."
 
         lifecycleScope.launch {
             try {
-                val reviewRequest = ReviewRequest(
+                val commentRb = opinion.toRequestBody("text/plain".toMediaTypeOrNull())
+                val ratingRb = 5.toString().toRequestBody("text/plain".toMediaTypeOrNull())
+                val userIdRb = getCurrentUserId().toRequestBody("text/plain".toMediaTypeOrNull())
+                val userNameRb = getCurrentUserName().toRequestBody("text/plain".toMediaTypeOrNull())
+                val categoryRb = (currentCategory ?: "").toRequestBody("text/plain".toMediaTypeOrNull())
+
+                val imagePart: MultipartBody.Part? = currentBitmap?.let { bitmap ->
+                    val file = File(cacheDir, "review_image.jpg")
+                    file.outputStream().use { out -> bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out) }
+                    val reqFile = file.asRequestBody("image/jpeg".toMediaTypeOrNull())
+                    MultipartBody.Part.createFormData("image", file.name, reqFile)
+                }
+
+                val response = RetrofitClient.apiService.submitReviewWithImage(
                     productId = currentProductId!!,
-                    productName = currentProductName!!,
-                    category = currentCategory ?: "",
-                    userId = getCurrentUserId(),
-                    userName = getCurrentUserName(),
-                    rating = 5,
-                    comment = opinion,
-                    sentimentScore = 0.5f,
-                    imageUrls = emptyList()
+                    comment = commentRb,
+                    image = imagePart,
+                    rating = ratingRb,
+                    userId = userIdRb,
+                    userName = userNameRb,
+                    category = categoryRb
                 )
 
-                val response = RetrofitClient.apiService.submitReview(reviewRequest.productId, reviewRequest)
                 if (response.isSuccessful) {
-                    val reviewResponse = response.body()
                     clearForm()
-                    Toast.makeText(this@MainFeed, "¡Gracias! Opinión enviada (ID: ${reviewResponse?.id})", Toast.LENGTH_LONG).show()
-                } else Toast.makeText(this@MainFeed, "Error del servidor: ${response.code()}", Toast.LENGTH_LONG).show()
+                    Toast.makeText(this@MainFeed, "¡Gracias! Opinión enviada (ID: ${response.body()?.id})", Toast.LENGTH_LONG).show()
+                } else {
+                    Toast.makeText(this@MainFeed, "Error del servidor: ${response.code()}", Toast.LENGTH_LONG).show()
+                }
 
             } catch (e: Exception) {
                 Toast.makeText(this@MainFeed, "Fallo de conexión.", Toast.LENGTH_LONG).show()
@@ -311,8 +333,7 @@ class MainFeed : AppCompatActivity() {
     private fun getCurrentUserName(): String = UserRepository(this).getUserName() ?: "Usuario"
 
 
-    //HINT
-
+    // HINT ADAPTER
     private class HintAdapter(context: Context, resource: Int, private val items: List<String>, private val hint: String)
         : ArrayAdapter<String>(context, resource, items) {
 

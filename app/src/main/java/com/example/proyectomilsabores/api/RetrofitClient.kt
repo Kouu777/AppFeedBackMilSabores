@@ -10,10 +10,25 @@ import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.Path
 import java.util.concurrent.TimeUnit
+import okhttp3.MultipartBody
+import okhttp3.RequestBody
+import retrofit2.http.Multipart
+import retrofit2.http.Part
 
 interface ApiService {
 
-    // --- Reviews ---
+    //Reviews con imagen
+    @Multipart
+    @POST("api/productos/{productId}/reviews")
+    suspend fun submitReviewWithImage(
+        @Path("productId") productId: String,
+        @Part("comment") comment: RequestBody,
+        @Part image: MultipartBody.Part?,
+        @Part("rating") rating: RequestBody,
+        @Part("userId") userId: RequestBody,
+        @Part("userName") userName: RequestBody,
+        @Part("category") category: RequestBody
+    ): Response<ReviewResponse>
     @POST("api/productos/{productId}/reviews")
     suspend fun submitReview(
         @Path("productId") productId: String,
@@ -23,17 +38,12 @@ interface ApiService {
     @GET("api/productos/{productoId}/reviews")
     suspend fun getReviewsForProduct(@Path("productoId") id: Long): Response<List<ReviewResponse>>
 
-
-    // --- Categorías ---
     @GET("api/categorias")
     suspend fun getCategorias(): Response<List<CategoriaResponse>>
 
-
-    // --- Productos ---
     @GET("api/productos/categoria/{categoriaId}")
     suspend fun getProductosPorCategoria(@Path("categoriaId") categoriaId: Long): Response<List<ProductoResponse>>
 
-    // ⭐ NECESARIO PARA EL QR ⭐
     @GET("api/productos/{productoId}")
     suspend fun getProductoById(@Path("productoId") productoId: Long): Response<ProductoResponse>
 }
