@@ -19,6 +19,8 @@ import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import android.view.View
 import android.view.ViewGroup
+import android.util.Base64
+import java.io.ByteArrayOutputStream
 import android.widget.*
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
@@ -264,6 +266,25 @@ class MainFeed : AppCompatActivity() {
             @Suppress("DEPRECATION")
             MediaStore.Images.Media.getBitmap(this.contentResolver, uri)
 
+    // REDIMENSIONAR IMG
+    private fun resizeBitmap(bitmap: Bitmap, maxSize: Int): Bitmap {
+        val width = bitmap.width
+        val height = bitmap.height
+
+        val ratio: Float = width.toFloat() / height.toFloat()
+        val newWidth: Int
+        val newHeight: Int
+
+        if (ratio > 1) {
+            newWidth = maxSize
+            newHeight = (maxSize / ratio).toInt()
+        } else {
+            newHeight = maxSize
+            newWidth = (maxSize * ratio).toInt()
+        }
+
+        return Bitmap.createScaledBitmap(bitmap, newWidth, newHeight, true)
+    }
 
     // ENVIAR REVIEW
     private fun submitReview() {
@@ -282,44 +303,55 @@ class MainFeed : AppCompatActivity() {
 
         lifecycleScope.launch {
             try {
-                val commentRb = opinion.toRequestBody("text/plain".toMediaTypeOrNull())
-                val ratingRb = 5.toString().toRequestBody("text/plain".toMediaTypeOrNull())
-                val userIdRb = getCurrentUserId().toRequestBody("text/plain".toMediaTypeOrNull())
-                val userNameRb = getCurrentUserName().toRequestBody("text/plain".toMediaTypeOrNull())
-                val categoryRb = (currentCategory ?: "").toRequestBody("text/plain".toMediaTypeOrNull())
+                // Redimensionar bitmap si existe
+                val bitmapToSend: Bitmap? = currentBitmap?.let { resizeBitmap(it, 1024) }
 
-                val imagePart: MultipartBody.Part? = currentBitmap?.let { bitmap ->
-                    val file = File(cacheDir, "review_image.jpg")
-                    file.outputStream().use { out -> bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out) }
-                    val reqFile = file.asRequestBody("image/jpeg".toMediaTypeOrNull())
-                    MultipartBody.Part.createFormData("image", file.name, reqFile)
+                // Convertir bitmap a Base64
+                val imageBase64: String? = bitmapToSend?.let {
+                    val outputStream = java.io.ByteArrayOutputStream()
+                    it.compress(Bitmap.CompressFormat.JPEG, 85, outputStream)
+                    android.util.Base64.encodeToString(outputStream.toByteArray(), android.util.Base64.NO_WRAP)
                 }
 
-                val response = RetrofitClient.apiService.submitReviewWithImage(
+                // Crear objeto ReviewRequest
+                val reviewRequest = ReviewRequest(
                     productId = currentProductId!!,
-                    comment = commentRb,
-                    image = imagePart,
-                    rating = ratingRb,
-                    userId = userIdRb,
-                    userName = userNameRb,
-                    category = categoryRb
+                    productName = currentProductName ?: "",
+                    comment = opinion,
+                    rating = 5,
+                    userId = getCurrentUserId(),
+                    userName = getCurrentUserName(),
+                    category = currentCategory ?: "",
+                    imageBase64 = imageBase64
+                )
+
+                // Enviar la reseña
+                val response = RetrofitClient.apiService.submitReview(
+                    productId = currentProductId!!.toLong(),
+                    reviewRequest = reviewRequest
                 )
 
                 if (response.isSuccessful) {
                     clearForm()
-                    Toast.makeText(this@MainFeed, "¡Gracias! Opinión enviada (ID: ${response.body()?.id})", Toast.LENGTH_LONG).show()
+                    Toast.makeText(
+                        this@MainFeed,
+                        "¡Gracias! Opinión enviada (ID: ${response.body()?.id})",
+                        Toast.LENGTH_LONG
+                    ).show()
                 } else {
                     Toast.makeText(this@MainFeed, "Error del servidor: ${response.code()}", Toast.LENGTH_LONG).show()
                 }
 
             } catch (e: Exception) {
-                Toast.makeText(this@MainFeed, "Fallo de conexión.", Toast.LENGTH_LONG).show()
+                e.printStackTrace()
+                Toast.makeText(this@MainFeed, "Fallo de conexión o envío.", Toast.LENGTH_LONG).show()
             } finally {
                 btnEnviarOp.isEnabled = true
                 btnEnviarOp.text = "Enviar reseña"
             }
         }
     }
+
 
     private fun clearForm() {
         etxOpinion.text.clear()

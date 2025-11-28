@@ -16,19 +16,13 @@ import retrofit2.http.Multipart
 import retrofit2.http.Part
 
 interface ApiService {
-
-    //Reviews con imagen
-    @Multipart
-    @POST("api/productos/{productId}/reviews")
-    suspend fun submitReviewWithImage(
-        @Path("productId") productId: String,
-        @Part("comment") comment: RequestBody,
-        @Part image: MultipartBody.Part?,
-        @Part("rating") rating: RequestBody,
-        @Part("userId") userId: RequestBody,
-        @Part("userName") userName: RequestBody,
-        @Part("category") category: RequestBody
+    @POST("api/productos/{id}/reviews")
+    suspend fun submitReview(
+        @Path("id") productId: Long,
+        @Body reviewRequest: ReviewRequest
     ): Response<ReviewResponse>
+
+
     @POST("api/productos/{productId}/reviews")
     suspend fun submitReview(
         @Path("productId") productId: String,
@@ -59,7 +53,7 @@ data class ReviewRequest(
     val rating: Int,
     val comment: String,
     val sentimentScore: Float = 0.5f,
-    val imageUrls: List<String> = emptyList()
+    val imageBase64: String? = null
 )
 
 data class ReviewResponse(
@@ -96,7 +90,7 @@ data class ProductoResponse(
 
 object RetrofitClient {
 
-    private const val BASE_URL = "http://192.168.100.8:8081/"
+    private const val BASE_URL = "http://10.31.230.120:8081/"
 
     val apiService: ApiService by lazy {
         val logging = HttpLoggingInterceptor().apply {
