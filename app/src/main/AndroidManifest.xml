@@ -20,6 +20,9 @@
         android:theme="@style/Theme.ProyectoMilSabores"
         android:usesCleartextTraffic="true">
         <activity
+            android:name=".MainIntro"
+            android:exported="false" />
+        <activity
             android:name=".MainScanner"
             android:exported="false" />
         <activity

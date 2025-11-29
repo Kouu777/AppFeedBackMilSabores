@@ -10,40 +10,41 @@ import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.Path
 import java.util.concurrent.TimeUnit
-import okhttp3.MultipartBody
-import okhttp3.RequestBody
-import retrofit2.http.Multipart
-import retrofit2.http.Part
 
+
+// ========================================
+//           API INTERFACE
+// ========================================
 interface ApiService {
+
+    // Crear review con Base64
     @POST("api/productos/{id}/reviews")
     suspend fun submitReview(
         @Path("id") productId: Long,
         @Body reviewRequest: ReviewRequest
     ): Response<ReviewResponse>
 
-
-    @POST("api/productos/{productId}/reviews")
-    suspend fun submitReview(
-        @Path("productId") productId: String,
-        @Body reviewRequest: ReviewRequest
-    ): Response<ReviewResponse>
-
+    // Obtener reviews de un producto
     @GET("api/productos/{productoId}/reviews")
     suspend fun getReviewsForProduct(@Path("productoId") id: Long): Response<List<ReviewResponse>>
 
+    // Categorías
     @GET("api/categorias")
     suspend fun getCategorias(): Response<List<CategoriaResponse>>
 
+    // Productos por categoría
     @GET("api/productos/categoria/{categoriaId}")
     suspend fun getProductosPorCategoria(@Path("categoriaId") categoriaId: Long): Response<List<ProductoResponse>>
 
+    // Obtener producto por ID
     @GET("api/productos/{productoId}")
     suspend fun getProductoById(@Path("productoId") productoId: Long): Response<ProductoResponse>
 }
 
 
-
+// ========================================
+//           DATA CLASSES
+// ========================================
 data class ReviewRequest(
     val productId: String,
     val productName: String,
@@ -53,21 +54,17 @@ data class ReviewRequest(
     val rating: Int,
     val comment: String,
     val sentimentScore: Float = 0.5f,
-    val imageBase64: String? = null
+    val imageBase64: String? = null // <- Aquí viaja la IMAGEN
 )
 
 data class ReviewResponse(
     val id: Long,
-    val productId: String,
-    val productName: String,
-    val category: String,
-    val userId: String,
-    val userName: String,
-    val rating: Int,
-    val comment: String,
-    val sentimentScore: Float,
-    val imageUrls: List<String>,
-    val createdAt: String
+    val productoId: Long?,
+    val usuario: String?,
+    val texto: String?,
+    val rating: Int?,
+    val imageUrl: String?,     // <- tu backend devuelve solo 1 URL, no lista
+    val fecha: String?
 )
 
 data class CategoriaResponse(
@@ -87,12 +84,16 @@ data class ProductoResponse(
 )
 
 
-
+// ========================================
+//           RETROFIT CLIENT
+// ========================================
 object RetrofitClient {
 
-    private const val BASE_URL = "http://10.31.230.120:8081/"
+    // Cambia al IP correcto si usas celular físico
+    private const val BASE_URL = "http://192.168.1.169:8081/"
 
     val apiService: ApiService by lazy {
+
         val logging = HttpLoggingInterceptor().apply {
             level = HttpLoggingInterceptor.Level.BODY
         }

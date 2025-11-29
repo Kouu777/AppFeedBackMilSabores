@@ -249,15 +249,20 @@ class MainFeed : AppCompatActivity() {
     private fun chooseFromGallery() { pickImageLauncher.launch("image/*") }
 
     private fun processImageUri(uri: Uri, successMessage: String) {
+        Log.d("IMAGEFLOW", "URI recibido: $uri")
+
         try {
             currentBitmap = uriToBitmap(uri)
+            Log.d("IMAGEFLOW", "Bitmap generado: ${currentBitmap != null}")
+
             ivPreview.setImageBitmap(currentBitmap)
             ivPreview.visibility = View.VISIBLE
             Toast.makeText(this, successMessage, Toast.LENGTH_SHORT).show()
         } catch (e: Exception) {
-            Toast.makeText(this, "Error al procesar la imagen.", Toast.LENGTH_LONG).show()
+            Log.e("IMAGEFLOW", "Error procesando imagen: ${e.message}")
         }
     }
+
 
     private fun uriToBitmap(uri: Uri): Bitmap =
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P)
@@ -289,6 +294,7 @@ class MainFeed : AppCompatActivity() {
     // ENVIAR REVIEW
     private fun submitReview() {
         val opinion = etxOpinion.text.toString().trim()
+
         if (currentProductId == null) {
             Toast.makeText(this, "Selecciona un producto", Toast.LENGTH_LONG).show()
             return
@@ -303,29 +309,44 @@ class MainFeed : AppCompatActivity() {
 
         lifecycleScope.launch {
             try {
-                // Redimensionar bitmap si existe
-                val bitmapToSend: Bitmap? = currentBitmap?.let { resizeBitmap(it, 1024) }
 
-                // Convertir bitmap a Base64
-                val imageBase64: String? = bitmapToSend?.let {
-                    val outputStream = java.io.ByteArrayOutputStream()
-                    it.compress(Bitmap.CompressFormat.JPEG, 85, outputStream)
-                    android.util.Base64.encodeToString(outputStream.toByteArray(), android.util.Base64.NO_WRAP)
+                Log.d("REVIEW_DEBUG", "¿Bitmap existe?: ${currentBitmap != null}")
+
+                // Redimensionar bitmap
+                val bitmapToSend: Bitmap? = currentBitmap?.let {
+                    resizeBitmap(it, 1024)
                 }
 
-                // Crear objeto ReviewRequest
+                if (bitmapToSend != null) {
+                    Log.d("REVIEW_DEBUG", "Bitmap redimensionado correctamente.")
+                } else {
+                    Log.e("REVIEW_DEBUG", "ERROR: Bitmap es NULL antes de convertir.")
+                }
+
+                // Convertir a base64
+                val imageBase64: String? = bitmapToSend?.let {
+                    val outputStream = ByteArrayOutputStream()
+                    it.compress(Bitmap.CompressFormat.JPEG, 85, outputStream)
+                    Base64.encodeToString(outputStream.toByteArray(), Base64.NO_WRAP)
+                }
+
+                Log.d("REVIEW_DEBUG", "Longitud Base64: ${imageBase64?.length ?: 0}")
+
+                // Crear ReviewRequest
                 val reviewRequest = ReviewRequest(
                     productId = currentProductId!!,
                     productName = currentProductName ?: "",
-                    comment = opinion,
-                    rating = 5,
+                    category = currentCategory ?: "",
                     userId = getCurrentUserId(),
                     userName = getCurrentUserName(),
-                    category = currentCategory ?: "",
+                    rating = 5,
+                    comment = opinion,
                     imageBase64 = imageBase64
                 )
 
-                // Enviar la reseña
+                Log.d("REVIEW_DEBUG", "JSON enviado: $reviewRequest")
+
+                // Enviar reseña
                 val response = RetrofitClient.apiService.submitReview(
                     productId = currentProductId!!.toLong(),
                     reviewRequest = reviewRequest
@@ -333,16 +354,16 @@ class MainFeed : AppCompatActivity() {
 
                 if (response.isSuccessful) {
                     clearForm()
-                    Toast.makeText(
-                        this@MainFeed,
-                        "¡Gracias! Opinión enviada (ID: ${response.body()?.id})",
-                        Toast.LENGTH_LONG
-                    ).show()
+                    Toast.makeText(this@MainFeed, "¡Gracias! Opinión enviada", Toast.LENGTH_LONG).show()
+
+                    Log.d("REVIEW_DEBUG", "Respuesta del servidor: ${response.body()}")
                 } else {
-                    Toast.makeText(this@MainFeed, "Error del servidor: ${response.code()}", Toast.LENGTH_LONG).show()
+                    Log.e("REVIEW_DEBUG", "Error del servidor: ${response.code()}")
+                    Toast.makeText(this@MainFeed, "Error: ${response.code()}", Toast.LENGTH_LONG).show()
                 }
 
             } catch (e: Exception) {
+                Log.e("REVIEW_DEBUG", "EXCEPCIÓN enviando review: ${e.message}")
                 e.printStackTrace()
                 Toast.makeText(this@MainFeed, "Fallo de conexión o envío.", Toast.LENGTH_LONG).show()
             } finally {
@@ -353,12 +374,20 @@ class MainFeed : AppCompatActivity() {
     }
 
 
+
     private fun clearForm() {
         etxOpinion.text.clear()
         currentImageUri = null
         currentBitmap = null
         ivPreview.visibility = View.GONE
+
+        // Reiniciar categoría y producto
         spCat.setSelection(0)
+
+        // Vaciar el spinner de productos
+        spProd.adapter = null
+        currentProductId = null
+        currentProductName = null
     }
 
     private fun getCurrentUserId(): String = UserRepository(this).getUserId() ?: "user_unknown"
