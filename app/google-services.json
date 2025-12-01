@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "805847127750",
+    "project_id": "proyectomilsabores",
+    "storage_bucket": "proyectomilsabores.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:805847127750:android:f91e0e0f4be94a66a8a9c7",
+        "android_client_info": {
+          "package_name": "com.example.proyectomilsabores"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBRD-zQeT8RP0lKojzm1wEAGbNRPoY7WJY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

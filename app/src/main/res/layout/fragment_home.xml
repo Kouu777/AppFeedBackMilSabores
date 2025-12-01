@@ -1,0 +1,264 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/colorFondo"
+    android:fillViewport="true">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/main"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingTop="16dp"
+        android:paddingBottom="80dp">
+
+        <!-- Header Section -->
+        <TextView
+            android:id="@+id/tv_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:fontFamily="@font/pacifico_regular"
+            android:text="Mil Sabores"
+            android:textColor="@color/dark_brown"
+            android:textSize="36sp"
+            android:textStyle="bold"
+            android:gravity="center"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <TextView
+            android:id="@+id/tx_subtitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            app:fontFamily="@font/pacifico_regular"
+            android:text="Danos tu reseña!"
+            android:textColor="@color/dark_brown"
+            android:textSize="24sp"
+            android:gravity="center"
+            app:layout_constraintTop_toBottomOf="@id/tv_title"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <!-- Quick Access Button Section -->
+        <Button
+            android:id="@+id/btn_scanqr"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_marginTop="24dp"
+            android:text="📱 Escanear QR"
+            android:backgroundTint="@color/baby_pink"
+            android:textColor="@color/dark_brown"
+            android:textSize="16sp"
+            android:fontFamily="@font/lato_regular"
+            android:textAllCaps="false"
+            android:elevation="4dp"
+            app:layout_constraintTop_toBottomOf="@id/tx_subtitle"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <!-- Product Selection Section with Card View -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/card_product_selection"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="4dp"
+            app:cardBackgroundColor="@android:color/white"
+            app:layout_constraintTop_toBottomOf="@id/btn_scanqr"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent">
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:padding="16dp">
+
+                <!-- Category Label -->
+                <TextView
+                    android:id="@+id/tv_category_label"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Categoría"
+                    android:textSize="14sp"
+                    android:textColor="@color/dark_brown"
+                    android:textStyle="bold"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintStart_toStartOf="parent" />
+
+                <!-- Category Spinner -->
+                <Spinner
+                    android:id="@+id/sp_cat"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_marginTop="8dp"
+                    android:background="@drawable/spinner_background"
+                    android:padding="12dp"
+                    app:layout_constraintTop_toBottomOf="@id/tv_category_label"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent" />
+
+                <!-- Product Label -->
+                <TextView
+                    android:id="@+id/tv_product_label"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:text="Producto"
+                    android:textSize="14sp"
+                    android:textColor="@color/dark_brown"
+                    android:textStyle="bold"
+                    app:layout_constraintTop_toBottomOf="@id/sp_cat"
+                    app:layout_constraintStart_toStartOf="parent" />
+
+                <!-- Product Spinner -->
+                <Spinner
+                    android:id="@+id/sp_prod"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_marginTop="8dp"
+                    android:background="@drawable/spinner_background"
+                    android:padding="12dp"
+                    app:layout_constraintTop_toBottomOf="@id/tv_product_label"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent" />
+
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Opinion Section with Card View -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/card_opinion"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="4dp"
+            app:cardBackgroundColor="@android:color/white"
+            app:layout_constraintTop_toBottomOf="@id/card_product_selection"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent">
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:padding="16dp">
+
+                <!-- Opinion Label -->
+                <TextView
+                    android:id="@+id/tv_opinion_label"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Tu opinión"
+                    android:textSize="14sp"
+                    android:textColor="@color/dark_brown"
+                    android:textStyle="bold"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintStart_toStartOf="parent" />
+
+                <!-- Opinion EditText -->
+                <EditText
+                    android:id="@+id/etx_opinion"
+                    android:layout_width="0dp"
+                    android:layout_height="120dp"
+                    android:layout_marginTop="8dp"
+                    android:gravity="start|top"
+                    android:hint="Escribe aquí tu opinión..."
+                    android:inputType="textMultiLine"
+                    android:background="@drawable/edittext_background"
+                    android:padding="12dp"
+                    android:textColorHint="@android:color/darker_gray"
+                    android:textColor="@color/dark_brown"
+                    android:textSize="14sp"
+                    app:layout_constraintTop_toBottomOf="@id/tv_opinion_label"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent" />
+
+                <!-- Image Preview Label -->
+                <TextView
+                    android:id="@+id/tv_image_label"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:text="Imagen (opcional)"
+                    android:textSize="14sp"
+                    android:textColor="@color/dark_brown"
+                    android:textStyle="bold"
+                    app:layout_constraintTop_toBottomOf="@id/etx_opinion"
+                    app:layout_constraintStart_toStartOf="parent" />
+
+                <!-- Image Upload Buttons -->
+                <LinearLayout
+                    android:id="@+id/ll_image_buttons"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:orientation="horizontal"
+                    android:gravity="center"
+                    android:spacing="8dp"
+                    app:layout_constraintTop_toBottomOf="@id/tv_image_label"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent">
+
+                    <Button
+                        android:id="@+id/btn_fto"
+                        android:layout_width="0dp"
+                        android:layout_height="44dp"
+                        android:layout_weight="1"
+                        android:backgroundTint="@color/baby_pink"
+                        android:text="📷 Foto"
+                        android:textColor="@color/dark_brown"
+                        android:textSize="14sp"
+                        android:fontFamily="@font/lato_regular"
+                        android:textAllCaps="false"
+                        android:elevation="2dp" />
+
+                </LinearLayout>
+
+                <!-- Image Preview -->
+                <ImageView
+                    android:id="@+id/iv_preview"
+                    android:layout_width="0dp"
+                    android:layout_height="140dp"
+                    android:layout_marginTop="12dp"
+                    android:background="@drawable/image_preview_background"
+                    android:scaleType="centerCrop"
+                    android:visibility="gone"
+                    app:layout_constraintTop_toBottomOf="@id/ll_image_buttons"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    tools:src="@tools:sample/backgrounds/scenic"
+                    tools:visibility="visible" />
+
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Submit Button -->
+        <Button
+            android:id="@+id/btn_enviarop"
+            android:layout_width="0dp"
+            android:layout_height="52dp"
+            android:layout_marginTop="24dp"
+            android:backgroundTint="@color/dark_brown"
+            android:text="✓ Enviar reseña"
+            android:textColor="@color/beige"
+            android:textSize="16sp"
+            android:fontFamily="@font/lato_regular"
+            android:textAllCaps="false"
+            android:elevation="6dp"
+            app:layout_constraintTop_toBottomOf="@id/card_opinion"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</ScrollView>

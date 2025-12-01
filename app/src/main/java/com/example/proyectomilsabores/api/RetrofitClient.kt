@@ -12,9 +12,9 @@ import retrofit2.http.Path
 import java.util.concurrent.TimeUnit
 
 
-// ========================================
-//           API INTERFACE
-// ========================================
+//
+// API
+
 interface ApiService {
 
     // Crear review con Base64
@@ -27,6 +27,7 @@ interface ApiService {
     // Obtener reviews de un producto
     @GET("api/productos/{productoId}/reviews")
     suspend fun getReviewsForProduct(@Path("productoId") id: Long): Response<List<ReviewResponse>>
+
 
     // Categorías
     @GET("api/categorias")
@@ -42,9 +43,8 @@ interface ApiService {
 }
 
 
-// ========================================
-//           DATA CLASSES
-// ========================================
+
+// DATA CLASS
 data class ReviewRequest(
     val productId: String,
     val productName: String,
@@ -84,13 +84,12 @@ data class ProductoResponse(
 )
 
 
-// ========================================
-//           RETROFIT CLIENT
-// ========================================
+
+//  RETROFIT CLIENT
 object RetrofitClient {
 
     // Cambia al IP correcto si usas celular físico
-    private const val BASE_URL = "http://192.168.1.169:8081/"
+    private const val BASE_URL = "http://192.168.100.8:8081/"
 
     val apiService: ApiService by lazy {
 

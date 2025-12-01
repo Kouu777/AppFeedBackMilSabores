@@ -19,12 +19,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.ProyectoMilSabores"
         android:usesCleartextTraffic="true">
-        <activity
-            android:name=".MainIntro"
-            android:exported="false" />
-        <activity
-            android:name=".MainScanner"
-            android:exported="false" />
+
         <activity
             android:name=".MainLogin"
             android:exported="false" />
@@ -34,7 +29,7 @@
             android:value="47831308631-8ufbqnndirtc21eath532pc8j1ca9qjf.apps.googleusercontent.com" />
 
         <activity
-            android:name=".ui.activities.MainFeed"
+            android:name=".MainActivity"
             android:exported="false" /> <!-- ML KIT -->
         <activity
             android:name=".ScanQr.ScannerActivity"

@@ -1,4 +1,4 @@
-package com.example.proyectomilsabores.camera
+package com.example.proyectomilsabores.camara
 
 import android.content.Context
 import androidx.camera.core.*
@@ -6,14 +6,14 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
-import kotlinx.coroutines.tasks.await
 import java.io.File
 import kotlinx.coroutines.suspendCancellableCoroutine
-import kotlin.coroutines.resume
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 
 class CameraManager(
     private val context: Context,
@@ -35,19 +35,24 @@ class CameraManager(
                     it.setSurfaceProvider(previewView.surfaceProvider)
                 }
 
-            imageCapture = ImageCapture.Builder()
+            // variable local no nula para evitar error de compilación
+            val localImageCapture = ImageCapture.Builder()
                 .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
                 .build()
+            
+            // asignar a la variable
+            this.imageCapture = localImageCapture
 
             val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
 
             try {
                 cameraProvider.unbindAll()
+                // pasar variable local no nula
                 cameraProvider.bindToLifecycle(
                     lifecycleOwner,
                     cameraSelector,
                     preview,
-                    imageCapture
+                    localImageCapture
                 )
             } catch (exc: Exception) {
                 exc.printStackTrace()
@@ -56,26 +61,38 @@ class CameraManager(
     }
 
     suspend fun takePicture(): File? {
-        return try {
-            val photoFile = createImageFile()
+        // comprobar si imageCapture es nulo al principio
+        val localImageCapture = imageCapture ?: return null
 
-            // FORMA CORRECTA de tomar la foto
+        return try {
+            // comprobar que el archivo se pudo crear
+            val photoFile = createImageFile() ?: return null
+
             suspendCancellableCoroutine { continuation ->
                 val outputOptions = ImageCapture.OutputFileOptions.Builder(photoFile).build()
 
-                imageCapture?.takePicture(
+                localImageCapture.takePicture(
                     outputOptions,
                     ContextCompat.getMainExecutor(context),
                     object : ImageCapture.OnImageSavedCallback {
                         override fun onImageSaved(output: ImageCapture.OutputFileResults) {
-                            continuation.resume(photoFile)
+                            if (continuation.isActive) {
+                                continuation.resume(photoFile)
+                            }
                         }
 
                         override fun onError(exception: ImageCaptureException) {
-                            continuation.resume(null)
+                            photoFile.delete() // limpiar si hay un error
+                            if (continuation.isActive) {
+                                continuation.resumeWithException(exception)
+                            }
                         }
                     }
                 )
+
+                continuation.invokeOnCancellation {
+                    photoFile.delete()
+                }
             }
         } catch (e: Exception) {
             e.printStackTrace()
@@ -83,10 +100,13 @@ class CameraManager(
         }
     }
 
-    private fun createImageFile(): File {
+    private fun createImageFile(): File? {
+        val storageDir: File = context.getExternalFilesDir("photos") ?: run {
+            //null si no se puede acceder al directorio
+            return null
+        }
+        storageDir.mkdirs()
         val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
-        val storageDir = context.getExternalFilesDir("photos")
-        storageDir?.mkdirs()
         return File.createTempFile(
             "JPEG_${timeStamp}_",
             ".jpg",
@@ -95,6 +115,8 @@ class CameraManager(
     }
 
     fun cleanup() {
-        cameraExecutor.shutdown()
+        if (::cameraExecutor.isInitialized) {
+            cameraExecutor.shutdown()
+        }
     }
 }

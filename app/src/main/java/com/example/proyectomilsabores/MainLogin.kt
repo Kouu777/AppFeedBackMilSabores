@@ -13,11 +13,12 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.example.proyectomilsabores.DbLog.DbHelper
 import com.example.proyectomilsabores.DbLog.Usuarios
-import com.example.proyectomilsabores.ui.activities.MainFeed
+import com.example.proyectomilsabores.data.UserRepository
 
 class MainLogin : AppCompatActivity() {
 
     private lateinit var databaseHelper: DbHelper
+    private lateinit var userRepository: UserRepository
 
     @SuppressLint("MissingInflatedId")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -27,6 +28,7 @@ class MainLogin : AppCompatActivity() {
 
 
         databaseHelper = DbHelper(this)
+        userRepository = UserRepository(this)
 
         val btnLogin: Button = findViewById(R.id.btn_login)
         val etxPasswd: EditText = findViewById(R.id.etx_pass)
@@ -104,7 +106,12 @@ class MainLogin : AppCompatActivity() {
                     txConf.text = "Bienvenido ${user.nombre}"
                     Toast.makeText(this, "Inicio de sesión exitoso", Toast.LENGTH_SHORT).show()
 
-                    val nvaVentana = Intent(this, MainFeed::class.java)
+                    // Guardar información del usuario en SharedPreferences
+                    userRepository.saveUserName(user.nombre)
+                    userRepository.saveUserId(user.email)
+                    userRepository.setFirstTimeUser(false)
+
+                    val nvaVentana = Intent(this, MainActivity::class.java)
 
                     nvaVentana.putExtra("USER_NAME", user.nombre)
                     nvaVentana.putExtra("USER_EMAIL", user.email)

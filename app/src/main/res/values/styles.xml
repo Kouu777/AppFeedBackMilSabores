@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Estilo para las imágenes circulares -->
+    <style name="CircleImageView">
+        <item name="cornerSize">50%</item>
+    </style>
+
+    <!-- Estilo para títulos principales -->
+    <style name="TitleStyle">
+        <item name="android:textSize">36sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@color/dark_brown</item>
+    </style>
+
+    <!-- Estilo para subtítulos -->
+    <style name="SubtitleStyle">
+        <item name="android:textSize">24sp</item>
+        <item name="android:textColor">@color/dark_brown</item>
+    </style>
+
+    <!-- Estilo para botones primarios -->
+    <style name="PrimaryButtonStyle" parent="Widget.MaterialComponents.Button">
+        <item name="android:textSize">16sp</item>
+        <item name="android:paddingStart">24dp</item>
+        <item name="android:paddingEnd">24dp</item>
+        <item name="cornerRadius">8dp</item>
+    </style>
+
+    <!-- Estilo para botones secundarios -->
+    <style name="SecondaryButtonStyle" parent="Widget.MaterialComponents.Button.OutlinedButton">
+        <item name="android:textSize">14sp</item>
+        <item name="cornerRadius">8dp</item>
+    </style>
+
+    <!-- Estilo para EditText -->
+    <style name="CustomEditTextStyle">
+        <item name="android:textSize">14sp</item>
+        <item name="android:textColor">@color/dark_brown</item>
+        <item name="android:textColorHint">@android:color/darker_gray</item>
+        <item name="android:padding">12dp</item>
+    </style>
+
+    <!-- Estilo para Spinner -->
+    <style name="CustomSpinnerStyle">
+        <item name="android:textSize">14sp</item>
+        <item name="android:textColor">@color/dark_brown</item>
+        <item name="android:padding">12dp</item>
+    </style>
+
+    <!-- Estilo para CardView -->
+    <style name="CustomCardViewStyle">
+        <item name="cornerRadius">12dp</item>
+        <item name="android:elevation">4dp</item>
+    </style>
+
+    <!-- Estilo para BottomNavigationView mejorada -->
+    <style name="BottomNavigationViewStyle" parent="Widget.MaterialComponents.BottomNavigationView">
+        <item name="itemTextAppearanceInactive">@style/BottomNavTextInactive</item>
+        <item name="itemTextAppearanceActive">@style/BottomNavTextActive</item>
+        <item name="itemIconSize">28dp</item>
+    </style>
+
+    <!-- Estilo para texto inactivo en navbar -->
+    <style name="BottomNavTextInactive">
+        <item name="android:textSize">12sp</item>
+        <item name="android:fontFamily">@font/lato_regular</item>
+    </style>
+
+    <!-- Estilo para texto activo en navbar -->
+    <style name="BottomNavTextActive">
+        <item name="android:textSize">12sp</item>
+        <item name="android:fontFamily">@font/lato_regular</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+</resources>
+

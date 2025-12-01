@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/mobile_navigation"
+    app:startDestination="@id/navigation_home">
+
+    <!-- Ruta para la pantalla "Tienda" -->
+    <fragment
+        android:id="@+id/navigation_home"
+        android:name="com.example.proyectomilsabores.fragments.HomeFragment"
+        android:label="Inicio" />
+
+    <!-- Ruta para la pantalla "Mis Reseñas" -->
+    <fragment
+        android:id="@+id/navigation_reviews"
+        android:name="com.example.proyectomilsabores.fragments.ReviewsFragment"
+        android:label="Mis Reseñas" />
+
+    <!-- Ruta para la pantalla "Perfil" -->
+    <fragment
+        android:id="@+id/navigation_profile"
+        android:name="com.example.proyectomilsabores.fragments.ProfileFragment"
+        android:label="Perfil" />
+
+</navigation>

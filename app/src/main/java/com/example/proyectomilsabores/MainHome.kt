@@ -2,12 +2,12 @@ package com.example.proyectomilsabores
 
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.widget.Button
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
+import com.example.proyectomilsabores.data.UserRepository
 
 
 class MainHome : AppCompatActivity() {
@@ -16,44 +16,56 @@ class MainHome : AppCompatActivity() {
     private lateinit var slide2: View
     private lateinit var btnComenzar: Button
     private lateinit var btnSiguiente: Button
+    private lateinit var userRepository: UserRepository
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        setContentView(R.layout.activity_home)
+        setContentView(R.layout.activity_main_home)
 
-        slide1 = findViewById(R.id.slide1)
-        slide2 = findViewById(R.id.slide2)
-        btnComenzar = findViewById(R.id.btn_comenzar)
-        btnSiguiente = findViewById(R.id.btn_siguiente)
+        userRepository = UserRepository(this)
 
-        // Inicialmente, solo se muestra el primer slide
-        slide1.visibility = View.VISIBLE
-        slide2.visibility = View.GONE
+        // FORZAR LIMPIEZA DE DATOS DE SESIÓN
+        userRepository.clearUserData()
+        Log.d("MainHome", "Datos de sesión limpiados forzadamente")
 
-        btnComenzar.setOnClickListener {
-            // Animación slide hacia la izquierda
-            slide1.animate()
-                .translationX(-slide1.width.toFloat())
-                .alpha(0f)
-                .setDuration(300)
-                .withEndAction {
-                    slide1.visibility = View.GONE
-                    slide2.visibility = View.VISIBLE
-                    slide2.translationX = slide2.width.toFloat()
-                    slide2.alpha = 0f
-                    slide2.animate()
-                        .translationX(0f)
-                        .alpha(1f)
-                        .setDuration(300)
-                        .start()
-                }.start()
+        // Verificar si el usuario ya está logeado
+        val userName = userRepository.getUserName()
+        Log.d("MainHome", "UserName guardado después de limpiar: '$userName'")
+
+        if (!userName.isNullOrEmpty() && userName != "null" && userName.trim().isNotEmpty()) {
+            // Usuario ya tiene sesión activa, ir a MainActivity
+            Log.d("MainHome", "Usuario logeado: $userName - ir a MainActivity")
+            val intent = Intent(this, MainActivity::class.java)
+            startActivity(intent)
+            finish()
+            return
         }
 
-        btnSiguiente.setOnClickListener {
+        Log.d("MainHome", "Mostrando intro - no hay sesión activa")
+
+        slide1 = findViewById(R.id.slide1)
+        btnComenzar = findViewById(R.id.btn_comenzar)
+
+
+        // solo se muestra el primer slide
+        slide1.visibility = View.VISIBLE
+
+
+        // Long-click
+        slide1.setOnLongClickListener {
+            userRepository.clearUserData()
+            Log.d("MainHome", "Datos de sesión limpiados")
+            android.widget.Toast.makeText(this, "Sesión limpiada", android.widget.Toast.LENGTH_SHORT).show()
+            true
+        }
+
+
+
+        btnComenzar.setOnClickListener {
             val intent = Intent(this, MainLogin::class.java)
             startActivity(intent)
-            overridePendingTransition(android.R.anim.slide_in_left, android.R.anim.slide_out_right)
+            finish()
         }
     }
 }

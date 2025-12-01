@@ -114,4 +114,21 @@ class DbHelper (context: Context) : SQLiteOpenHelper(context,
             null
         }
     }
+
+    fun updateUser(email: String, newName: String, newEmail: String): Boolean {
+        val db = this.writableDatabase
+        val values = ContentValues().apply {
+            put(COLUMN_NAME, newName)
+            put(COLUMN_EMAIL, newEmail)
+        }
+
+        val result = db.update(
+            TABLE_USERS,
+            values,
+            "$COLUMN_EMAIL = ?",
+            arrayOf(email)
+        )
+        db.close()
+        return result > 0
+    }
 }
